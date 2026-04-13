@@ -2,7 +2,23 @@ import { useState } from 'react'
 import './App.css'
 import Modal from './components/common/Modal'
 import Card from './components/common/Card'
+import DataTable, { type Column } from './components/common/DataTable'
+import { type User } from './types/User'
 
+ 
+const usersMock: User[] = [
+  { id: 1, nombre: 'Carlos', apellido: 'Gutierrez',  correo: 'carlos.g@hospital.mx',  fecha: '04/03/2026', tiempo: '2h 15m', rol: 'D.G.', estatus: 'Activo' },
+  { id: 2, nombre: 'Ana', apellido: 'Llano', correo: 'ana.l@salud.mx',        fecha: '04/03/2026', tiempo: '1h 45m', rol: 'D.G.', estatus: 'Activo' },
+  { id: 3, nombre: 'Roberto', apellido: 'Niño',  correo: 'r.nino@instituto.mx',  fecha: '03/03/2026', tiempo: '3h 30m', rol: 'D.F.', estatus: 'Inactivo' },
+]
+ 
+const activityColumnsMock: Column<User>[] = [
+  { key: 'nombre_completo', header: 'Nombre Completo', render: row => `${row.nombre} ${row.apellido}` },
+  { key: 'correo', header: 'Correo' },
+  { key: 'fecha',  header: 'Fecha',  width: 'w-32' },
+  { key: 'tiempo', header: 'Tiempo Conectado', width: 'w-36' },
+]
+ 
 
 function App() {
   const [isOpen, setIsOpen] = useState(false)
@@ -70,6 +86,16 @@ function App() {
         </Card>
  
       </div>
+
+      <Card
+        title="Actividad Reciente"
+        subtitle="Usuarios conectados esta semana"   //aqui iria la searchbar de Gabo
+      >
+        <DataTable
+          columns={activityColumnsMock}
+          data={usersMock}
+        />
+      </Card>
     </div>
   )
 }
