@@ -4,6 +4,7 @@ import Modal from './components/common/Modal'
 import Card from './components/common/Card'
 import DataTable, { type Column } from './components/common/DataTable'
 import { type User } from './types/User'
+import StatCard from './components/features/dashboard/StatCard'
 
  
 const usersMock: User[] = [
@@ -22,7 +23,6 @@ const activityColumnsMock: Column<User>[] = [
 
 function App() {
   const [isOpen, setIsOpen] = useState(false)
-  const [log, setLog] = useState('')
 
   return (
 
@@ -41,9 +41,7 @@ function App() {
       >
         <p>Contenido del modal aquí. Estamos probando</p>
       </Modal>
-      <p className="text-xs text-[var(--color-hi-text-sub)] mb-6">
-        Acción ejecutada: <strong>{log || '—'}</strong>
-      </p>
+      
  
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
  
@@ -66,24 +64,8 @@ function App() {
             </span>
           </div>
         </Card>
- 
-        
-        <Card
-          title="Gasto en Diabetes"
-          subtitle="35% del presupuesto total"
-          actions={[
-            { label: 'Editar',    onClick: () => setLog('Editar') },
-            { label: 'Duplicar',  onClick: () => setLog('Duplicar') },
-            { label: 'Eliminar',  onClick: () => setLog('Eliminar'), danger: true },
-          ]}
-        >
-          <p className="text-3xl font-bold text-[var(--color-hi-navy)]">
-            $320M
-          </p>
-          <p className="text-xs text-[var(--color-hi-text-sub)] mt-1">
-            Haz click en los 3 puntitos para ver las acciones
-          </p>
-        </Card>
+
+        <StatCard title="Personas con diabetes" subtitle="CDMX, 2026" value="1,250K" label="Última actualización: 2025-12-31" />
  
       </div>
 
