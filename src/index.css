@@ -1,1 +1,43 @@
 @import "tailwindcss";
+
+@theme {
+  /* ── Brand colors ─────────────────────────────── */
+  --color-hi-primary:      #38BDD1;   /* teal principal — botones, activos   */
+  --color-hi-primary-dark: #2AA3B8;   /* hover de botón primario             */
+  --color-hi-primary-soft: #E8F7FA;   /* fondo suave, badges info            */
+
+  --color-hi-navy:         #1B3A6B;   /* logo, títulos principales           */
+  --color-hi-navy-light:   #2D5090;   /* textos secundarios con peso         */
+
+  /* ── Neutrales ────────────────────────────────── */
+  --color-hi-bg:           #F4F6F9;   /* fondo de página                     */
+  --color-hi-surface:      #FFFFFF;   /* fondo de cards y modales            */
+  --color-hi-border:       #E2E8F0;   /* bordes de inputs y cards            */
+  --color-hi-border-focus: #38BDD1;   /* borde al hacer focus                */
+
+  /* ── Texto ────────────────────────────────────── */
+  --color-hi-text-main:    #1A2B4A;   /* texto principal                     */
+  --color-hi-text-sub:     #64748B;   /* labels, subtítulos, placeholders    */
+  --color-hi-text-hint:    #94A3B8;   /* hints, texto deshabilitado          */
+
+  /* ── Semánticos ───────────────────────────────── */
+  --color-hi-success:      #22C55E;
+  --color-hi-warning:      #F59E0B;
+  --color-hi-danger:       #EF4444;
+
+  /* ── Tipografía ───────────────────────────────── */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Radios ───────────────────────────────────── */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  20px;
+}
+
+/* Fondo general de la app */
+body {
+  background-color: var(--color-hi-bg);
+  color: var(--color-hi-text-main);
+  font-family: var(--font-sans);
+}
