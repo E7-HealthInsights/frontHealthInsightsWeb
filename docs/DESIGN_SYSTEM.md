@@ -21,26 +21,12 @@ Guía de referencia del sistema de diseño del proyecto. Cubre tokens de diseño
    - [Modal](#modal)
    - [DataTable](#datatable)
    - [StatCard](#statcard)
-<<<<<<< HEAD
    - [SearchInput](#searchinput)
    - [Button](#button)
    - [UserMenu](#usermenu)
 4. [Patrones de layout](#4-patrones-de-layout)
 5. [Accesibilidad](#5-accesibilidad)
 6. [Estructura de archivos](#6-estructura-de-archivos)
-=======
-   - [Navbar](#navbar)
-   - [UserMenu](#usermenu)
-   - [FileUploadZone](#fileuploadzone)
-   - [CSVPreviewTable](#csvpreviewtable)
-   - [ColumnMapper](#columnmapper)
-5. [Variantes especializadas de Card](#5-variantes-especializadas-de-card)
-6. [Variantes especializadas de Modal](#6-variantes-especializadas-de-modal)
-7. [Vistas / Páginas](#7-vistas--páginas)
-8. [Patrones de layout](#8-patrones-de-layout)
-9. [Accesibilidad](#9-accesibilidad)
-10. [Estructura de archivos](#10-estructura-de-archivos)
->>>>>>> 10b5977898ab6904ca69f942134ec61a80c703cb
 
 ---
 
@@ -545,7 +531,6 @@ Barra de navegación superior con logo, links de navegación y menú de usuario.
 
 ---
 
-<<<<<<< HEAD
 ---
 
 ### Button
@@ -651,197 +636,6 @@ Botón circular con ícono de perfil que despliega un menú de usuario con la op
 ---
 
 ## 4. Patrones de layout
-=======
-### UserMenu
-
-> **Estado:** Planificado
-
-Avatar de usuario con dropdown para acciones de sesión.
-
-#### Props
-
-| Prop | Tipo | Descripción |
-|---|---|---|
-| `userName` | `string` | Nombre visible |
-| `userAvatar` | `string` | URL del avatar |
-| `onLogout` | `() => void` | Callback al cerrar sesión |
-
-#### Comportamiento
-
-- Click en avatar abre/cierra dropdown.
-- Click fuera cierra el dropdown.
-- Opciones: "Mi perfil", "Cerrar sesión".
-
----
-
-### FileUploadZone
-
-> **Estado:** Planificado
-
-Zona de arrastre para subir archivos CSV. Dos estados visuales: vacío y archivo cargado.
-
-#### Props
-
-| Prop | Tipo | Descripción |
-|---|---|---|
-| `onFileSelect` | `(file: File) => void` | Callback al seleccionar archivo |
-| `accept` | `string` | Tipos aceptados (default: `.csv`) |
-| `maxSize` | `number` | Tamaño máximo en bytes |
-| `className` | `string` | Clases extra |
-
-#### Estados visuales
-
-| Estado | Visual |
-|---|---|
-| Vacío | Borde punteado, icono de upload, texto "Arrastra un archivo CSV o haz click" |
-| Cargado | Fondo `--color-hi-success` suave, icono check, nombre del archivo |
-
----
-
-### CSVPreviewTable
-
-> **Estado:** Planificado
-
-Tabla de previsualización de las primeras 5 filas de un CSV parseado. Componente presentacional puro.
-
-#### Props
-
-| Prop | Tipo | Descripción |
-|---|---|---|
-| `data` | `Record<string, string>[]` | Primeras 5 filas del CSV parseado |
-
----
-
-### ColumnMapper
-
-> **Estado:** Planificado
-
-Componente de mapeo de columnas CSV a campos del sistema.
-
-#### Props
-
-| Prop | Tipo | Descripción |
-|---|---|---|
-| `columns` | `string[]` | Nombres de columnas originales del CSV |
-| `onChange` | `(mapping: Record<string, string>) => void` | Callback con el mapeo resultado |
-
----
-
-## 5. Variantes especializadas de Card
-
-Todas comparten la estructura del `Card` genérico: título, subtítulo, menú de tres puntos y área de contenido. Cada variante es un hijo que le pasa su contenido especializado al Card base.
-
-| Variante | Contenido | Uso |
-|---|---|---|
-| **ChartCard** | Gráfica (barras, líneas, etc.) | Dashboard — métricas visuales |
-| **MapCard** | Mapa geográfico interactivo | Dashboard — distribución geográfica |
-| **StatCard** | Valor numérico destacado | Dashboard — KPIs (ya implementado) |
-| **ProjectionCard** | Resumen de proyección + botones Ver/Editar/Borrar | Proyecciones — listado |
-| **ReportCard** | Resumen de reporte + botones Ver/Descargar/Borrar | Reportes — listado |
-| **DataCard** | Resumen de dataset + botones Editar/Borrar | Datos — listado |
-| **VariablesCard** | Lista de variables de una proyección | Proyecciones — detalle |
-| **ParamCard** | Parámetros de una proyección | Proyecciones — detalle |
-| **ResultsCard** | Resultados de una proyección | Proyecciones — detalle |
-
----
-
-## 6. Variantes especializadas de Modal
-
-Todas envuelven el `Modal` genérico con contenido específico.
-
-| Variante | Contenido | Uso |
-|---|---|---|
-| **GenerateElementModal** | Dropdown fuente + agregar + tags de filtro + inputs + preview + botones Generar/Preview/Cancelar | Dashboard — generar elemento de gráfica |
-| **NewProjectionModal** | Similar a GenerateElementModal con campos de proyección | Proyecciones — nueva proyección |
-| **AddUserModal** | InputFields (Nombre, Apellido, Correo) + Passwords + Dropdown Rol + botones Cancelar/Crear | Usuarios — agregar usuario |
-| **NewDatasetModal** | InputField título + TextArea descripción + InputField fuente + FileUploadZone + CSVPreviewTable + ColumnMapper + botones Cancelar/Avanzar/Finalizar | Datos — nuevo dataset |
-
----
-
-## 7. Vistas / Páginas
-
-### Login
-
-| Componente | Notas |
-|---|---|
-| Logo | Centrado arriba |
-| LoginCard | Card que agrupa el formulario |
-| InputField (email) | Campo de correo |
-| InputField (password) | Campo con toggle de visibilidad |
-| Button (primary) | "Ingresar" |
-| Text Link | "ForgotPassword" |
-
-### Dashboard
-
-| Componente | Notas |
-|---|---|
-| Button (primary) | "Generar reporte" |
-| Button (icon) | Editar |
-| ChartCard | Gráfica de métricas |
-| StatCard | KPIs numéricos |
-| MapCard | Mapa geográfico |
-| GenerateElementModal | Modal para generar elementos |
-
-### Proyecciones
-
-| Componente | Notas |
-|---|---|
-| ProjectionCard | Listado de proyecciones |
-| Button (secondary) | "Ver" |
-| Button (icon) | Editar, Borrar, + |
-| NewProjectionModal | Modal para nueva proyección |
-| ChartCard | Detalle — gráfica |
-| VariablesCard | Detalle — variables |
-| ParamCard | Detalle — parámetros |
-| ResultsCard | Detalle — resultados |
-| Button (primary) | "Generar Reporte" |
-| Button (secondary) | "Volver" |
-
-### Reportes
-
-| Componente | Notas |
-|---|---|
-| Button (primary) | "Descargar toda" |
-| ReportCard | Listado de reportes |
-| Button (secondary) | "Ver" |
-| Button (icon) | Descargar, Borrar |
-
-### Actividad Reciente
-
-| Componente | Notas |
-|---|---|
-| SearchInput | Búsqueda de actividades |
-| TabGroup | Filtros de tipo de actividad |
-| DataTable | Tabla de actividades |
-| Button (primary) | "Generar reporte" |
-
-### Usuarios
-
-| Componente | Notas |
-|---|---|
-| SearchInput | Búsqueda de usuarios |
-| TabGroup | "Activos" / "Inactivos" |
-| DataTable | Tabla de usuarios |
-| Button (primary) | "Agregar Usuario" |
-| Button (icon) | Editar, Eliminar |
-| Badge | Rol / Estatus de cada usuario |
-| AddUserModal | Modal para crear usuario |
-
-### Datos
-
-| Componente | Notas |
-|---|---|
-| SearchInput | Búsqueda de datasets |
-| Button (primary) | "Agregar" |
-| DataCard | Listado de datasets |
-| Button (secondary) | "Editar" |
-| Button (icon) | Borrar |
-| NewDatasetModal | Modal con FileUploadZone + ColumnMapper |
-
----
-
-## 8. Patrones de layout
->>>>>>> 10b5977898ab6904ca69f942134ec61a80c703cb
 
 ### Grid de cards
 
@@ -928,29 +722,10 @@ src/
 │   │   │   ├── DataTable.tsx          # ✅ Implementado
 │   │   │   └── index.ts
 │   │   ├── SearchInput/
-<<<<<<< HEAD
 │   │   │   ├── SearchInput.tsx
 │   │   │   └── index.ts
 │   │   ├── Button/
 │   │   │   ├── Button.tsx
-=======
-│   │   │   ├── SearchInput.tsx        # ✅ Implementado
-│   │   │   └── index.ts
-│   │   ├── Badge/
-│   │   │   ├── Badge.tsx
-│   │   │   └── index.ts
-│   │   ├── FilterTag/
-│   │   │   ├── FilterTag.tsx
-│   │   │   └── index.ts
-│   │   ├── TabGroup/
-│   │   │   ├── TabGroup.tsx
-│   │   │   └── index.ts
-│   │   ├── FileUploadZone/
-│   │   │   ├── FileUploadZone.tsx
-│   │   │   └── index.ts
-│   │   ├── Navbar/
-│   │   │   ├── Navbar.tsx
->>>>>>> 10b5977898ab6904ca69f942134ec61a80c703cb
 │   │   │   └── index.ts
 │   │   └── UserMenu/
 │   │       ├── UserMenu.tsx
