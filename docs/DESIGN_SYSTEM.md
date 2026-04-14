@@ -1,6 +1,6 @@
 # Health Insights — Design System
 
-Guía de referencia del sistema de diseño del proyecto. Cubre tokens de diseño, componentes disponibles, convenciones de código y patrones de uso.
+Guía de referencia del sistema de diseño del proyecto. Cubre tokens de diseño, componentes disponibles (implementados y planificados), convenciones de código, patrones de uso y la estructura de vistas.
 
 ---
 
@@ -8,7 +8,15 @@ Guía de referencia del sistema de diseño del proyecto. Cubre tokens de diseño
 
 1. [Tokens de diseño](#1-tokens-de-diseño)
 2. [Convenciones de componentes](#2-convenciones-de-componentes)
-3. [Componentes](#3-componentes)
+3. [Componentes básicos](#3-componentes-básicos)
+   - [Button](#button)
+   - [InputField](#inputfield)
+   - [Dropdown](#dropdown)
+   - [SearchInput](#searchinput)
+   - [Badge](#badge)
+   - [FilterTag](#filtertag)
+   - [TabGroup](#tabgroup)
+4. [Componentes compuestos](#4-componentes-compuestos)
    - [Card](#card)
    - [Modal](#modal)
    - [DataTable](#datatable)
@@ -20,6 +28,17 @@ Guía de referencia del sistema de diseño del proyecto. Cubre tokens de diseño
 4. [Patrones de layout](#4-patrones-de-layout)
 5. [Accesibilidad](#5-accesibilidad)
 6. [Estructura de archivos](#6-estructura-de-archivos)
+   - [Navbar](#navbar)
+   - [UserMenu](#usermenu)
+   - [FileUploadZone](#fileuploadzone)
+   - [CSVPreviewTable](#csvpreviewtable)
+   - [ColumnMapper](#columnmapper)
+5. [Variantes especializadas de Card](#5-variantes-especializadas-de-card)
+6. [Variantes especializadas de Modal](#6-variantes-especializadas-de-modal)
+7. [Vistas / Páginas](#7-vistas--páginas)
+8. [Patrones de layout](#8-patrones-de-layout)
+9. [Accesibilidad](#9-accesibilidad)
+10. [Estructura de archivos](#10-estructura-de-archivos)
 
 ---
 
@@ -110,14 +129,200 @@ Definidos en `src/index.css` bajo `@theme`. Se consumen con `var(--token)` en la
 - **Sin librerías de iconos**: los iconos se escriben como SVG inline para evitar dependencias y mantener tamaños precisos.
 - **CSS variables en clases Tailwind**: `bg-[var(--color-hi-surface)]`, nunca valores hex hardcodeados fuera de `index.css`.
 - **TypeScript estricto**: todas las props se tipan con `interface`; los unions de variantes se tipan con `type`.
+- **Variantes via props**: los componentes con múltiples variantes visuales (Button, Badge, etc.) usan una prop `variant` en lugar de componentes separados.
 
 ---
 
-## 3. Componentes
+## 3. Componentes básicos
+
+### Button
+
+> **Estado:** Planificado
+
+Botón unificado con tres variantes. Un solo componente `<Button>` evita triplicar código.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `variant` | `'primary' \| 'secondary' \| 'icon'` | `'primary'` | Variante visual |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Tamaño del botón |
+| `icon` | `ReactNode` | — | Icono SVG inline |
+| `children` | `ReactNode` | — | Label del botón (no aplica en `icon`) |
+| `onClick` | `() => void` | — | Callback de click |
+| `disabled` | `boolean` | `false` | Deshabilita el botón |
+| `className` | `string` | `''` | Clases extra |
+
+#### Variantes
+
+| Variante | Estilo | Uso |
+|---|---|---|
+| `primary` | Fondo `--color-hi-primary`, texto blanco | "Ingresar", "Generar reporte", "Crear Usuario", "Generar", "Descargar" |
+| `secondary` | Borde `--color-hi-border`, fondo transparente | "Cancelar", "Preview", "Agregar", "Ver", "Volver", "Editar" |
+| `icon` | Fondo transparente, solo icono | Editar (lápiz), Borrar (papelera), +, × |
 
 ---
+
+### InputField
+
+> **Estado:** Planificado
+
+Campo de entrada unificado. Cubre texto, contraseña y búsqueda.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `label` | `string` | — | Label visible sobre el input |
+| `placeholder` | `string` | `''` | Placeholder del campo |
+| `type` | `'text' \| 'password' \| 'email' \| 'number'` | `'text'` | Tipo de input |
+| `value` | `string` | — | Valor controlado (requerido) |
+| `onChange` | `(value: string) => void` | — | Callback al escribir (requerido) |
+| `error` | `string` | `''` | Mensaje de error bajo el campo |
+| `disabled` | `boolean` | `false` | Deshabilita el campo |
+| `className` | `string` | `''` | Clases extra |
+
+#### Notas
+
+- `type="password"` incluye toggle de visibilidad (ojo/eye icon).
+- El error se muestra debajo del campo en `text-xs text-[var(--color-hi-danger)]`.
+- El borde cambia a `--color-hi-danger` cuando hay error.
+
+---
+
+### Dropdown
+
+> **Estado:** Planificado
+
+Menú desplegable para selección de una opción.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `label` | `string` | — | Label visible |
+| `placeholder` | `string` | `'Seleccionar…'` | Placeholder |
+| `options` | `{ value: string; label: string }[]` | `[]` | Opciones disponibles |
+| `value` | `string` | — | Valor seleccionado (requerido) |
+| `onChange` | `(value: string) => void` | — | Callback al seleccionar |
+| `error` | `string` | `''` | Mensaje de error |
+| `className` | `string` | `''` | Clases extra |
+
+#### Uso en el proyecto
+
+- Selección de fuente de datos (Dashboard, Proyecciones).
+- Selección de tipo (Dashboard, Proyecciones).
+- Selección de rol (Usuarios).
+
+---
+
+### SearchInput
+
+> **Estado:** Implementado
+
+**Ruta:** `src/components/common/SearchInput/SearchInput.tsx`
+
+Input de búsqueda con icono de lupa, botón de limpiar y tres tamaños.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `value` | `string` | — | Valor controlado (requerido) |
+| `onChange` | `(value: string) => void` | — | Callback al escribir (requerido) |
+| `placeholder` | `string` | `'Buscar…'` | Texto de placeholder |
+| `disabled` | `boolean` | `false` | Deshabilita el campo |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Tamaño del componente |
+| `className` | `string` | `''` | Clases extra para el contenedor |
+| `onClear` | `() => void` | — | Override del clear; si no se pasa, llama `onChange('')` |
+
+**Tamaños:**
+
+| Size | Padding | Font | Caso de uso |
+|---|---|---|---|
+| `sm` | `py-1.5 pl-7 pr-7` | `text-xs` | Filtros dentro de tablas o paneles compactos |
+| `md` | `py-2 pl-9 pr-8` | `text-sm` | Búsqueda general (default) |
+| `lg` | `py-2.5 pl-11 pr-10` | `text-base` | Buscadores prominentes |
+
+#### Estados
+
+| Estado | Visual |
+|---|---|
+| Default | Borde `--color-hi-border` |
+| Focus | Borde `--color-hi-border-focus` + ring teal 20 % |
+| Con texto | Aparece botón `×` a la derecha |
+| Disabled | Fondo `--color-hi-bg`, cursor `not-allowed`, sin botón clear |
+
+---
+
+### Badge
+
+> **Estado:** Planificado
+
+Badge unificado para roles, estatus y tags de filtro.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `variant` | `'success' \| 'warning' \| 'danger' \| 'info' \| 'neutral'` | `'neutral'` | Color del badge |
+| `children` | `ReactNode` | — | Contenido del badge |
+
+#### Uso en el proyecto
+
+- **RolLabel**: badge con el rol del usuario (ej. "D.G.", "Admin").
+- **StatusLabel**: badge con el estatus (ej. "Activo" = success, "Inactivo" = danger).
+- **FilterTag**: badge removible con `label: valor`, lleva botón `×` para eliminar.
+
+---
+
+### FilterTag
+
+> **Estado:** Planificado
+
+Tag removible con label y valor. Aparece en modales de Dashboard y Proyecciones.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `label` | `string` | — | Nombre del filtro (ej. "Estado") |
+| `value` | `string` | — | Valor del filtro (ej. "Tabasco") |
+| `onRemove` | `() => void` | — | Callback al eliminar el tag |
+
+#### Visual
+
+Estilo tipo badge con fondo `--color-hi-primary-soft`, texto `--color-hi-primary-dark` y botón `×`.
+
+---
+
+### TabGroup
+
+> **Estado:** Planificado
+
+Grupo de tabs genérico para alternar contenido dentro de la misma página. No navega rutas (para eso está Navbar).
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `tabs` | `{ key: string; label: string }[]` | `[]` | Lista de tabs |
+| `activeTab` | `string` | — | Key del tab activo |
+| `onChange` | `(key: string) => void` | — | Callback al cambiar tab |
+| `className` | `string` | `''` | Clases extra |
+
+#### Uso en el proyecto
+
+- Actividad Reciente: tabs para tipos de actividad.
+- Usuarios: tabs "Activos" / "Inactivos".
+
+---
+
+## 4. Componentes compuestos
 
 ### Card
+
+> **Estado:** Implementado
 
 **Ruta:** `src/components/common/Card/Card.tsx`
 
@@ -168,7 +373,7 @@ type CardAction = {
 </Card>
 ```
 
-#### Estados
+#### Comportamiento
 
 - El menú de tres puntos se abre/cierra con click y se cierra al hacer click fuera (listener en `document`).
 - Si no hay `title` ni `actions`, el encabezado no se renderiza.
@@ -176,6 +381,8 @@ type CardAction = {
 ---
 
 ### Modal
+
+> **Estado:** Implementado
 
 **Ruta:** `src/components/common/Modal/Modal.tsx`
 
@@ -228,6 +435,8 @@ const [open, setOpen] = useState(false)
 ---
 
 ### DataTable
+
+> **Estado:** Implementado
 
 **Ruta:** `src/components/common/DataTable/DataTable.tsx`
 
@@ -284,6 +493,8 @@ const columns: Column<User>[] = [
 
 ### StatCard
 
+> **Estado:** Implementado
+
 **Ruta:** `src/components/features/dashboard/StatCard.tsx`
 
 Card especializada para mostrar un KPI o métrica con valor destacado. Envuelve `Card`.
@@ -297,100 +508,144 @@ Card especializada para mostrar un KPI o métrica con valor destacado. Envuelve 
 | `value` | `string \| number` | Valor principal destacado |
 | `label` | `string` | Nota al pie (ej. fecha de actualización) |
 
-#### Ejemplo
-
-```tsx
-<StatCard
-  title="Personas con diabetes"
-  subtitle="CDMX, 2026"
-  value="1,250K"
-  label="Última actualización: 2025-12-31"
-/>
-```
-
 #### Tipografía del valor
 
 - `text-3xl font-bold text-[var(--color-hi-navy)]`
 
 ---
 
-### SearchInput
+### Navbar
 
-**Ruta:** `src/components/common/SearchInput/SearchInput.tsx`
+> **Estado:** Planificado
 
-Input de búsqueda con icono de lupa, botón de limpiar y tres tamaños.
+Barra de navegación superior con logo, links de navegación y menú de usuario.
 
 #### Props
 
 | Prop | Tipo | Default | Descripción |
 |---|---|---|---|
-| `value` | `string` | — | Valor controlado (requerido) |
-| `onChange` | `(value: string) => void` | — | Callback al escribir (requerido) |
-| `placeholder` | `string` | `'Buscar…'` | Texto de placeholder |
-| `disabled` | `boolean` | `false` | Deshabilita el campo |
-| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Tamaño del componente |
-| `className` | `string` | `''` | Clases extra para el contenedor |
-| `onClear` | `() => void` | — | Override del clear; si no se pasa, llama `onChange('')` |
+| `links` | `{ key: string; label: string; path: string }[]` | — | Links de navegación |
+| `activePath` | `string` | — | Ruta activa actual |
 
-**Tamaños:**
+#### Elementos internos
 
-| Size | Padding | Font | Caso de uso |
-|---|---|---|---|
-| `sm` | `py-1.5 pl-7 pr-7` | `text-xs` | Filtros dentro de tablas o paneles compactos |
-| `md` | `py-2 pl-9 pr-8` | `text-sm` | Búsqueda general (default) |
-| `lg` | `py-2.5 pl-11 pr-10` | `text-base` | Buscadores prominentes |
+- **Logo**: link a inicio.
+- **NavLinks**: links que cambian de ruta (react-router). Su estado activo depende de la URL.
+- **UserMenu**: avatar + dropdown de sesión (ver componente UserMenu).
 
-#### Estados
+#### Links del proyecto
+
+| Label | Ruta |
+|---|---|
+| Inicio | `/` |
+| Proyecciones | `/proyecciones` |
+| Reportes | `/reportes` |
+
+---
+
+### UserMenu
+
+> **Estado:** Planificado
+
+Avatar de usuario con dropdown para acciones de sesión.
+
+#### Props
+
+| Prop | Tipo | Descripción |
+|---|---|---|
+| `userName` | `string` | Nombre visible |
+| `userAvatar` | `string` | URL del avatar |
+| `onLogout` | `() => void` | Callback al cerrar sesión |
+
+#### Comportamiento
+
+- Click en avatar abre/cierra dropdown.
+- Click fuera cierra el dropdown.
+- Opciones: "Mi perfil", "Cerrar sesión".
+
+---
+
+### FileUploadZone
+
+> **Estado:** Planificado
+
+Zona de arrastre para subir archivos CSV. Dos estados visuales: vacío y archivo cargado.
+
+#### Props
+
+| Prop | Tipo | Descripción |
+|---|---|---|
+| `onFileSelect` | `(file: File) => void` | Callback al seleccionar archivo |
+| `accept` | `string` | Tipos aceptados (default: `.csv`) |
+| `maxSize` | `number` | Tamaño máximo en bytes |
+| `className` | `string` | Clases extra |
+
+#### Estados visuales
 
 | Estado | Visual |
 |---|---|
-| Default | Borde `--color-hi-border` |
-| Focus | Borde `--color-hi-border-focus` + ring teal 20 % |
-| Con texto | Aparece botón `×` a la derecha |
-| Disabled | Fondo `--color-hi-bg`, cursor `not-allowed`, sin botón clear |
+| Vacío | Borde punteado, icono de upload, texto "Arrastra un archivo CSV o haz click" |
+| Cargado | Fondo `--color-hi-success` suave, icono check, nombre del archivo |
 
-#### Ejemplo con DataTable
+---
 
-```tsx
-import { useState, useMemo } from 'react'
-import Card from '@/components/common/Card'
-import SearchInput from '@/components/common/SearchInput'
-import DataTable, { type Column } from '@/components/common/DataTable'
-import { type User } from '@/types/User'
+### CSVPreviewTable
 
-const columns: Column<User>[] = [
-  { key: 'nombre_completo', header: 'Nombre', render: r => `${r.nombre} ${r.apellido}` },
-  { key: 'correo',  header: 'Correo' },
-  { key: 'estatus', header: 'Estatus' },
-]
+> **Estado:** Planificado
 
-function ActivityCard({ data }: { data: User[] }) {
-  const [query, setQuery] = useState('')
+Tabla de previsualización de las primeras 5 filas de un CSV parseado. Componente presentacional puro.
 
-  const filtered = useMemo(() => {
-    if (!query.trim()) return data
-    const q = query.toLowerCase()
-    return data.filter(u =>
-      `${u.nombre} ${u.apellido}`.toLowerCase().includes(q) ||
-      u.correo.toLowerCase().includes(q)
-    )
-  }, [data, query])
+#### Props
 
-  return (
-    <Card title="Actividad Reciente" subtitle="Usuarios conectados esta semana">
-      <div className="mb-3">
-        <SearchInput
-          value={query}
-          onChange={setQuery}
-          size="sm"
-          placeholder="Filtrar por nombre o correo…"
-        />
-      </div>
-      <DataTable columns={columns} data={filtered} emptyText="Sin resultados." />
-    </Card>
-  )
-}
-```
+| Prop | Tipo | Descripción |
+|---|---|---|
+| `data` | `Record<string, string>[]` | Primeras 5 filas del CSV parseado |
+
+---
+
+### ColumnMapper
+
+> **Estado:** Planificado
+
+Componente de mapeo de columnas CSV a campos del sistema.
+
+#### Props
+
+| Prop | Tipo | Descripción |
+|---|---|---|
+| `columns` | `string[]` | Nombres de columnas originales del CSV |
+| `onChange` | `(mapping: Record<string, string>) => void` | Callback con el mapeo resultado |
+
+---
+
+## 5. Variantes especializadas de Card
+
+Todas comparten la estructura del `Card` genérico: título, subtítulo, menú de tres puntos y área de contenido. Cada variante es un hijo que le pasa su contenido especializado al Card base.
+
+| Variante | Contenido | Uso |
+|---|---|---|
+| **ChartCard** | Gráfica (barras, líneas, etc.) | Dashboard — métricas visuales |
+| **MapCard** | Mapa geográfico interactivo | Dashboard — distribución geográfica |
+| **StatCard** | Valor numérico destacado | Dashboard — KPIs (ya implementado) |
+| **ProjectionCard** | Resumen de proyección + botones Ver/Editar/Borrar | Proyecciones — listado |
+| **ReportCard** | Resumen de reporte + botones Ver/Descargar/Borrar | Reportes — listado |
+| **DataCard** | Resumen de dataset + botones Editar/Borrar | Datos — listado |
+| **VariablesCard** | Lista de variables de una proyección | Proyecciones — detalle |
+| **ParamCard** | Parámetros de una proyección | Proyecciones — detalle |
+| **ResultsCard** | Resultados de una proyección | Proyecciones — detalle |
+
+---
+
+## 6. Variantes especializadas de Modal
+
+Todas envuelven el `Modal` genérico con contenido específico.
+
+| Variante | Contenido | Uso |
+|---|---|---|
+| **GenerateElementModal** | Dropdown fuente + agregar + tags de filtro + inputs + preview + botones Generar/Preview/Cancelar | Dashboard — generar elemento de gráfica |
+| **NewProjectionModal** | Similar a GenerateElementModal con campos de proyección | Proyecciones — nueva proyección |
+| **AddUserModal** | InputFields (Nombre, Apellido, Correo) + Passwords + Dropdown Rol + botones Cancelar/Crear | Usuarios — agregar usuario |
+| **NewDatasetModal** | InputField título + TextArea descripción + InputField fuente + FileUploadZone + CSVPreviewTable + ColumnMapper + botones Cancelar/Avanzar/Finalizar | Datos — nuevo dataset |
 
 ---
 
@@ -489,6 +744,89 @@ const [activeTab, setActiveTab] = useState("activos")
 ---
 
 ## 4. Patrones de layout
+## 7. Vistas / Páginas
+
+### Login
+
+| Componente | Notas |
+|---|---|
+| Logo | Centrado arriba |
+| LoginCard | Card que agrupa el formulario |
+| InputField (email) | Campo de correo |
+| InputField (password) | Campo con toggle de visibilidad |
+| Button (primary) | "Ingresar" |
+| Text Link | "ForgotPassword" |
+
+### Dashboard
+
+| Componente | Notas |
+|---|---|
+| Button (primary) | "Generar reporte" |
+| Button (icon) | Editar |
+| ChartCard | Gráfica de métricas |
+| StatCard | KPIs numéricos |
+| MapCard | Mapa geográfico |
+| GenerateElementModal | Modal para generar elementos |
+
+### Proyecciones
+
+| Componente | Notas |
+|---|---|
+| ProjectionCard | Listado de proyecciones |
+| Button (secondary) | "Ver" |
+| Button (icon) | Editar, Borrar, + |
+| NewProjectionModal | Modal para nueva proyección |
+| ChartCard | Detalle — gráfica |
+| VariablesCard | Detalle — variables |
+| ParamCard | Detalle — parámetros |
+| ResultsCard | Detalle — resultados |
+| Button (primary) | "Generar Reporte" |
+| Button (secondary) | "Volver" |
+
+### Reportes
+
+| Componente | Notas |
+|---|---|
+| Button (primary) | "Descargar toda" |
+| ReportCard | Listado de reportes |
+| Button (secondary) | "Ver" |
+| Button (icon) | Descargar, Borrar |
+
+### Actividad Reciente
+
+| Componente | Notas |
+|---|---|
+| SearchInput | Búsqueda de actividades |
+| TabGroup | Filtros de tipo de actividad |
+| DataTable | Tabla de actividades |
+| Button (primary) | "Generar reporte" |
+
+### Usuarios
+
+| Componente | Notas |
+|---|---|
+| SearchInput | Búsqueda de usuarios |
+| TabGroup | "Activos" / "Inactivos" |
+| DataTable | Tabla de usuarios |
+| Button (primary) | "Agregar Usuario" |
+| Button (icon) | Editar, Eliminar |
+| Badge | Rol / Estatus de cada usuario |
+| AddUserModal | Modal para crear usuario |
+
+### Datos
+
+| Componente | Notas |
+|---|---|
+| SearchInput | Búsqueda de datasets |
+| Button (primary) | "Agregar" |
+| DataCard | Listado de datasets |
+| Button (secondary) | "Editar" |
+| Button (icon) | Borrar |
+| NewDatasetModal | Modal con FileUploadZone + ColumnMapper |
+
+---
+
+## 8. Patrones de layout
 
 ### Grid de cards
 
@@ -511,10 +849,21 @@ const [activeTab, setActiveTab] = useState("activos")
 </Card>
 ```
 
+### Vista con tabs y búsqueda
+
+```tsx
+<Card title="Usuarios" subtitle="Gestión de usuarios del sistema">
+  <div className="flex items-center gap-3 mb-4">
+    <SearchInput value={query} onChange={setQuery} size="sm" placeholder="Buscar usuario…" />
+    <TabGroup tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+  </div>
+  <DataTable columns={columns} data={filteredData} />
+</Card>
+```
+
 ### Acción con confirmación en Modal
 
 ```tsx
-// El modal actúa como confirmación antes de una acción destructiva
 <Card actions={[{ label: 'Eliminar', onClick: () => setConfirmOpen(true), danger: true }]}>
   ...
 </Card>
@@ -526,38 +875,82 @@ const [activeTab, setActiveTab] = useState("activos")
 
 ---
 
-## 5. Accesibilidad
+## 9. Accesibilidad
 
 - Todos los botones icon-only tienen `aria-label` descriptivo.
 - Los iconos decorativos llevan `aria-hidden="true"`.
 - Los modales bloquean el scroll y escuchan `Escape`.
 - Los inputs tienen `aria-label` explícito (no solo placeholder).
-- Los menús desplegables (Card) se cierran con click fuera via listener en `document`.
+- Los menús desplegables (Card, Dropdown, UserMenu) se cierran con click fuera via listener en `document`.
+- Los TabGroup usan `role="tablist"`, `role="tab"` y `role="tabpanel"`.
 
 ---
 
-## 6. Estructura de archivos
+## 10. Estructura de archivos
 
 ```
 src/
 ├── index.css                          # Tokens de diseño (@theme)
 ├── components/
 │   ├── common/                        # Componentes reutilizables en toda la app
+│   │   ├── Button/
+│   │   │   ├── Button.tsx
+│   │   │   └── index.ts
+│   │   ├── InputField/
+│   │   │   ├── InputField.tsx
+│   │   │   └── index.ts
+│   │   ├── Dropdown/
+│   │   │   ├── Dropdown.tsx
+│   │   │   └── index.ts
 │   │   ├── Card/
-│   │   │   ├── Card.tsx
+│   │   │   ├── Card.tsx               # ✅ Implementado
 │   │   │   └── index.ts
 │   │   ├── Modal/
-│   │   │   ├── Modal.tsx
+│   │   │   ├── Modal.tsx              # ✅ Implementado
 │   │   │   └── index.ts
 │   │   ├── DataTable/
-│   │   │   ├── DataTable.tsx
+│   │   │   ├── DataTable.tsx          # ✅ Implementado
 │   │   │   └── index.ts
-│   │   └── SearchInput/
-│   │       ├── SearchInput.tsx
+│   │   ├── SearchInput/
+│   │   │   ├── SearchInput.tsx        # ✅ Implementado
+│   │   │   └── index.ts
+│   │   ├── Badge/
+│   │   │   ├── Badge.tsx
+│   │   │   └── index.ts
+│   │   ├── FilterTag/
+│   │   │   ├── FilterTag.tsx
+│   │   │   └── index.ts
+│   │   ├── TabGroup/
+│   │   │   ├── TabGroup.tsx
+│   │   │   └── index.ts
+│   │   ├── FileUploadZone/
+│   │   │   ├── FileUploadZone.tsx
+│   │   │   └── index.ts
+│   │   ├── Navbar/
+│   │   │   ├── Navbar.tsx
+│   │   │   └── index.ts
+│   │   └── UserMenu/
+│   │       ├── UserMenu.tsx
 │   │       └── index.ts
 │   └── features/                      # Componentes específicos de dominio
-│       └── dashboard/
-│           └── StatCard.tsx
+│       ├── dashboard/
+│       │   └── StatCard.tsx           # ✅ Implementado
+│       ├── projections/
+│       │   ├── ProjectionCard.tsx
+│       │   ├── VariablesCard.tsx
+│       │   ├── ParamCard.tsx
+│       │   └── ResultsCard.tsx
+│       ├── reports/
+│       │   └── ReportCard.tsx
+│       ├── data/
+│       │   ├── DataCard.tsx
+│       │   ├── CSVPreviewTable.tsx
+│       │   └── ColumnMapper.tsx
+│       ├── charts/
+│       │   ├── ChartCard.tsx
+│       │   └── MapCard.tsx
+│       └── auth/
+│           └── LoginCard.tsx
 ├── types/
 │   └── User.ts
 docs/
@@ -586,3 +979,36 @@ import Card from '@/components/common/Card'
 // evitar
 import Card from '@/components/common/Card/Card'
 ```
+```
+
+---
+
+## Resumen de estados de implementación
+
+| Componente | Estado |
+|---|---|
+| Card | Implementado |
+| Modal | Implementado |
+| DataTable | Implementado |
+| SearchInput | Implementado |
+| StatCard | Implementado |
+| Button | Planificado |
+| InputField | Planificado |
+| Dropdown | Planificado |
+| Badge | Planificado |
+| FilterTag | Planificado |
+| TabGroup | Planificado |
+| Navbar | Planificado |
+| UserMenu | Planificado |
+| FileUploadZone | Planificado |
+| CSVPreviewTable | Planificado |
+| ColumnMapper | Planificado |
+| ChartCard | Planificado |
+| MapCard | Planificado |
+| ProjectionCard | Planificado |
+| ReportCard | Planificado |
+| DataCard | Planificado |
+| VariablesCard | Planificado |
+| ParamCard | Planificado |
+| ResultsCard | Planificado |
+| LoginCard | Planificado |
