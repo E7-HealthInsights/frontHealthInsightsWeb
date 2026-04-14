@@ -14,6 +14,9 @@ Guía de referencia del sistema de diseño del proyecto. Cubre tokens de diseño
    - [DataTable](#datatable)
    - [StatCard](#statcard)
    - [SearchInput](#searchinput)
+   - [Badge](#badge)
+   - [FilterTag](#filtertag)
+   - [TabGroup](#tabgroup)
 4. [Patrones de layout](#4-patrones-de-layout)
 5. [Accesibilidad](#5-accesibilidad)
 6. [Estructura de archivos](#6-estructura-de-archivos)
@@ -387,6 +390,100 @@ function ActivityCard({ data }: { data: User[] }) {
     </Card>
   )
 }
+```
+
+---
+
+### Badge
+
+**Ruta:** `src/components/common/Badge/Badge.tsx`
+
+Etiqueta pequeña para mostrar estados y roles. Cubre `RolLabel` y `StatusLabel`.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `label` | `string` | — | Texto del badge (requerido) |
+| `variant` | `'success' \| 'danger' \| 'warning' \| 'info' \| 'neutral'` | `'neutral'` | Color semántico |
+| `shape` | `'pill' \| 'rounded'` | `'pill'` | Forma del borde |
+| `className` | `string` | `''` | Clases extra |
+
+**Variantes:**
+
+| Variant | Uso típico |
+|---|---|
+| `success` | "Activo", estados positivos |
+| `danger` | "Inactivo", errores |
+| `warning` | Alertas, riesgo |
+| `info` | Roles ("D.G.", "D.F.") — usa `primary-soft` |
+| `neutral` | Estados sin carga semántica |
+
+#### Ejemplo
+
+```tsx
+<Badge label="Activo"   variant="success" />
+<Badge label="Inactivo" variant="neutral" />
+<Badge label="D.G."     variant="info" shape="rounded" />
+```
+
+---
+
+### FilterTag
+
+**Ruta:** `src/components/common/FilterTag/FilterTag.tsx`
+
+Etiqueta removible que muestra un par `label: valor`.
+
+#### Props
+
+| Prop | Tipo | Descripción |
+|---|---|---|
+| `label` | `string` | Nombre del filtro, ej. "Estado" (requerido) |
+| `value` | `string` | Valor activo, ej. "Tabasco" (requerido) |
+| `onRemove` | `() => void` | Callback al pulsar × (requerido) |
+| `className` | `string` | Clases extra |
+
+#### Ejemplo
+
+```tsx
+<FilterTag label="Estado" value="Tabasco" onRemove={() => removeFilter("estado")} />
+<FilterTag label="Año"    value="2024"    onRemove={() => removeFilter("año")} />
+```
+
+---
+
+### TabGroup
+
+**Ruta:** `src/components/common/TabGroup/TabGroup.tsx`
+
+Barra de pestañas controlada. Cambia contenido dentro de la misma página; **no navega entre rutas**.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `tabs` | `Tab[]` | — | Lista de pestañas (requerido) |
+| `activeTab` | `string` | — | id del tab activo (requerido) |
+| `onChange` | `(tabId: string) => void` | — | Callback al cambiar (requerido) |
+| `className` | `string` | `''` | Clases extra |
+
+#### Ejemplo
+
+```tsx
+const [activeTab, setActiveTab] = useState("activos")
+
+<TabGroup
+  tabs={[
+    { id: "activos",   label: "Usuarios Activos" },
+    { id: "inactivos", label: "Usuarios Inactivos" },
+  ]}
+  activeTab={activeTab}
+  onChange={setActiveTab}
+/>
+
+{activeTab === "activos"   && <DataTable ... />}
+{activeTab === "inactivos" && <DataTable ... />}
 ```
 
 ---
