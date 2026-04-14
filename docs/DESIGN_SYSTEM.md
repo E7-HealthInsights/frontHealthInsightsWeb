@@ -22,23 +22,11 @@ Guía de referencia del sistema de diseño del proyecto. Cubre tokens de diseño
    - [DataTable](#datatable)
    - [StatCard](#statcard)
    - [SearchInput](#searchinput)
-   - [Badge](#badge)
-   - [FilterTag](#filtertag)
-   - [TabGroup](#tabgroup)
+   - [Button](#button)
+   - [UserMenu](#usermenu)
 4. [Patrones de layout](#4-patrones-de-layout)
 5. [Accesibilidad](#5-accesibilidad)
 6. [Estructura de archivos](#6-estructura-de-archivos)
-   - [Navbar](#navbar)
-   - [UserMenu](#usermenu)
-   - [FileUploadZone](#fileuploadzone)
-   - [CSVPreviewTable](#csvpreviewtable)
-   - [ColumnMapper](#columnmapper)
-5. [Variantes especializadas de Card](#5-variantes-especializadas-de-card)
-6. [Variantes especializadas de Modal](#6-variantes-especializadas-de-modal)
-7. [Vistas / Páginas](#7-vistas--páginas)
-8. [Patrones de layout](#8-patrones-de-layout)
-9. [Accesibilidad](#9-accesibilidad)
-10. [Estructura de archivos](#10-estructura-de-archivos)
 
 ---
 
@@ -543,290 +531,111 @@ Barra de navegación superior con logo, links de navegación y menú de usuario.
 
 ---
 
-### UserMenu
-
-> **Estado:** Planificado
-
-Avatar de usuario con dropdown para acciones de sesión.
-
-#### Props
-
-| Prop | Tipo | Descripción |
-|---|---|---|
-| `userName` | `string` | Nombre visible |
-| `userAvatar` | `string` | URL del avatar |
-| `onLogout` | `() => void` | Callback al cerrar sesión |
-
-#### Comportamiento
-
-- Click en avatar abre/cierra dropdown.
-- Click fuera cierra el dropdown.
-- Opciones: "Mi perfil", "Cerrar sesión".
-
 ---
 
-### FileUploadZone
+### Button
 
-> **Estado:** Planificado
+**Ruta:** `src/components/common/Button/Button.tsx`
 
-Zona de arrastre para subir archivos CSV. Dos estados visuales: vacío y archivo cargado.
-
-#### Props
-
-| Prop | Tipo | Descripción |
-|---|---|---|
-| `onFileSelect` | `(file: File) => void` | Callback al seleccionar archivo |
-| `accept` | `string` | Tipos aceptados (default: `.csv`) |
-| `maxSize` | `number` | Tamaño máximo en bytes |
-| `className` | `string` | Clases extra |
-
-#### Estados visuales
-
-| Estado | Visual |
-|---|---|
-| Vacío | Borde punteado, icono de upload, texto "Arrastra un archivo CSV o haz click" |
-| Cargado | Fondo `--color-hi-success` suave, icono check, nombre del archivo |
-
----
-
-### CSVPreviewTable
-
-> **Estado:** Planificado
-
-Tabla de previsualización de las primeras 5 filas de un CSV parseado. Componente presentacional puro.
-
-#### Props
-
-| Prop | Tipo | Descripción |
-|---|---|---|
-| `data` | `Record<string, string>[]` | Primeras 5 filas del CSV parseado |
-
----
-
-### ColumnMapper
-
-> **Estado:** Planificado
-
-Componente de mapeo de columnas CSV a campos del sistema.
-
-#### Props
-
-| Prop | Tipo | Descripción |
-|---|---|---|
-| `columns` | `string[]` | Nombres de columnas originales del CSV |
-| `onChange` | `(mapping: Record<string, string>) => void` | Callback con el mapeo resultado |
-
----
-
-## 5. Variantes especializadas de Card
-
-Todas comparten la estructura del `Card` genérico: título, subtítulo, menú de tres puntos y área de contenido. Cada variante es un hijo que le pasa su contenido especializado al Card base.
-
-| Variante | Contenido | Uso |
-|---|---|---|
-| **ChartCard** | Gráfica (barras, líneas, etc.) | Dashboard — métricas visuales |
-| **MapCard** | Mapa geográfico interactivo | Dashboard — distribución geográfica |
-| **StatCard** | Valor numérico destacado | Dashboard — KPIs (ya implementado) |
-| **ProjectionCard** | Resumen de proyección + botones Ver/Editar/Borrar | Proyecciones — listado |
-| **ReportCard** | Resumen de reporte + botones Ver/Descargar/Borrar | Reportes — listado |
-| **DataCard** | Resumen de dataset + botones Editar/Borrar | Datos — listado |
-| **VariablesCard** | Lista de variables de una proyección | Proyecciones — detalle |
-| **ParamCard** | Parámetros de una proyección | Proyecciones — detalle |
-| **ResultsCard** | Resultados de una proyección | Proyecciones — detalle |
-
----
-
-## 6. Variantes especializadas de Modal
-
-Todas envuelven el `Modal` genérico con contenido específico.
-
-| Variante | Contenido | Uso |
-|---|---|---|
-| **GenerateElementModal** | Dropdown fuente + agregar + tags de filtro + inputs + preview + botones Generar/Preview/Cancelar | Dashboard — generar elemento de gráfica |
-| **NewProjectionModal** | Similar a GenerateElementModal con campos de proyección | Proyecciones — nueva proyección |
-| **AddUserModal** | InputFields (Nombre, Apellido, Correo) + Passwords + Dropdown Rol + botones Cancelar/Crear | Usuarios — agregar usuario |
-| **NewDatasetModal** | InputField título + TextArea descripción + InputField fuente + FileUploadZone + CSVPreviewTable + ColumnMapper + botones Cancelar/Avanzar/Finalizar | Datos — nuevo dataset |
-
----
-
-### Badge
-
-**Ruta:** `src/components/common/Badge/Badge.tsx`
-
-Etiqueta pequeña para mostrar estados y roles. Cubre `RolLabel` y `StatusLabel`.
+Botón reutilizable con tres variantes, tres tamaños, estado de carga y soporte de accesibilidad.
 
 #### Props
 
 | Prop | Tipo | Default | Descripción |
 |---|---|---|---|
-| `label` | `string` | — | Texto del badge (requerido) |
-| `variant` | `'success' \| 'danger' \| 'warning' \| 'info' \| 'neutral'` | `'neutral'` | Color semántico |
-| `shape` | `'pill' \| 'rounded'` | `'pill'` | Forma del borde |
-| `className` | `string` | `''` | Clases extra |
+| `variant` | `'primary' \| 'secondary' \| 'icon'` | `'primary'` | Estilo visual del botón |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Tamaño (ignorado en variante `icon`) |
+| `disabled` | `boolean` | `false` | Deshabilita el botón |
+| `loading` | `boolean` | `false` | Muestra spinner y deshabilita el botón |
+| `type` | `'button' \| 'submit' \| 'reset'` | `'button'` | Tipo HTML del botón |
+| `ariaLabel` | `string` | — | Requerido en variante `icon` (sin texto visible) |
+| `className` | `string` | `''` | Clases extra para el botón |
+| `onClick` | `() => void` | — | Callback al hacer click |
+| `children` | `ReactNode` | — | Contenido del botón (requerido) |
 
 **Variantes:**
 
-| Variant | Uso típico |
+| Variante | Apariencia |
 |---|---|
-| `success` | "Activo", estados positivos |
-| `danger` | "Inactivo", errores |
-| `warning` | Alertas, riesgo |
-| `info` | Roles ("D.G.", "D.F.") — usa `primary-soft` |
-| `neutral` | Estados sin carga semántica |
+| `primary` | Fondo `--color-hi-primary`, texto blanco; hover `--color-hi-primary-dark` |
+| `secondary` | Fondo `--color-hi-surface`, borde `--color-hi-border`; hover `--color-hi-bg` |
+| `icon` | Transparente, sin padding extra — para envolver SVGs; hover `--color-hi-bg` |
 
-#### Ejemplo
+**Tamaños:**
 
-```tsx
-<Badge label="Activo"   variant="success" />
-<Badge label="Inactivo" variant="neutral" />
-<Badge label="D.G."     variant="info" shape="rounded" />
-```
-
----
-
-### FilterTag
-
-**Ruta:** `src/components/common/FilterTag/FilterTag.tsx`
-
-Etiqueta removible que muestra un par `label: valor`.
-
-#### Props
-
-| Prop | Tipo | Descripción |
+| Size | Padding | Font |
 |---|---|---|
-| `label` | `string` | Nombre del filtro, ej. "Estado" (requerido) |
-| `value` | `string` | Valor activo, ej. "Tabasco" (requerido) |
-| `onRemove` | `() => void` | Callback al pulsar × (requerido) |
-| `className` | `string` | Clases extra |
+| `sm` | `px-3 py-1.5` | `text-xs` |
+| `md` | `px-4 py-2` | `text-sm` |
+| `lg` | `px-5 py-2.5` | `text-base` |
 
-#### Ejemplo
+#### Ejemplos
 
 ```tsx
-<FilterTag label="Estado" value="Tabasco" onRemove={() => removeFilter("estado")} />
-<FilterTag label="Año"    value="2024"    onRemove={() => removeFilter("año")} />
+// Primario
+<Button onClick={handleSave}>Guardar</Button>
+
+// Secundario
+<Button variant="secondary" onClick={handleCancel}>Cancelar</Button>
+
+// Icon (aria-label obligatorio)
+<Button variant="icon" ariaLabel="Eliminar">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14H6L5 6" />
+    <path d="M10 11v6M14 11v6" />
+    <path d="M9 6V4h6v2" />
+  </svg>
+</Button>
+
+// Cargando
+<Button loading>Guardando…</Button>
+
+// Submit en formulario
+<Button type="submit" size="lg">Crear cuenta</Button>
 ```
+
+#### Notas
+
+- En variante `icon`, los `size` no aplican — el padding lo define la propia variante.
+- El spinner del estado `loading` lleva `aria-hidden="true"` al ser decorativo.
 
 ---
 
-### TabGroup
+### UserMenu
 
-**Ruta:** `src/components/common/TabGroup/TabGroup.tsx`
+**Ruta:** `src/components/common/UserMenu/UserMenu.tsx`
 
-Barra de pestañas controlada. Cambia contenido dentro de la misma página; **no navega entre rutas**.
+Botón circular con ícono de perfil que despliega un menú de usuario con la opción de cerrar sesión.
 
 #### Props
 
 | Prop | Tipo | Default | Descripción |
 |---|---|---|---|
-| `tabs` | `Tab[]` | — | Lista de pestañas (requerido) |
-| `activeTab` | `string` | — | id del tab activo (requerido) |
-| `onChange` | `(tabId: string) => void` | — | Callback al cambiar (requerido) |
-| `className` | `string` | `''` | Clases extra |
+| `onLogout` | `() => void` | — | Callback al seleccionar "Cerrar Sesión" (requerido) |
+| `className` | `string` | `''` | Clases extra para el contenedor |
 
 #### Ejemplo
 
 ```tsx
-const [activeTab, setActiveTab] = useState("activos")
-
-<TabGroup
-  tabs={[
-    { id: "activos",   label: "Usuarios Activos" },
-    { id: "inactivos", label: "Usuarios Inactivos" },
-  ]}
-  activeTab={activeTab}
-  onChange={setActiveTab}
-/>
-
-{activeTab === "activos"   && <DataTable ... />}
-{activeTab === "inactivos" && <DataTable ... />}
+<UserMenu onLogout={() => auth.logout()} />
 ```
+
+#### Comportamiento
+
+- Click en el botón circular abre/cierra el dropdown.
+- Click fuera del componente cierra el dropdown (listener `mousedown` en `document`).
+- "Cerrar Sesión" llama a `onLogout` y cierra el menú.
+
+#### Estilos
+
+- Botón: círculo `w-9 h-9`, fondo `--color-hi-primary-soft`, ícono `--color-hi-primary`; hover relleno teal.
+- Dropdown: misma superficie y bordes que Card (`--color-hi-surface`, `--color-hi-border`, `--radius-md`).
+- Ítem "Cerrar Sesión": `--color-hi-danger` con ícono de salida.
 
 ---
 
 ## 4. Patrones de layout
-## 7. Vistas / Páginas
-
-### Login
-
-| Componente | Notas |
-|---|---|
-| Logo | Centrado arriba |
-| LoginCard | Card que agrupa el formulario |
-| InputField (email) | Campo de correo |
-| InputField (password) | Campo con toggle de visibilidad |
-| Button (primary) | "Ingresar" |
-| Text Link | "ForgotPassword" |
-
-### Dashboard
-
-| Componente | Notas |
-|---|---|
-| Button (primary) | "Generar reporte" |
-| Button (icon) | Editar |
-| ChartCard | Gráfica de métricas |
-| StatCard | KPIs numéricos |
-| MapCard | Mapa geográfico |
-| GenerateElementModal | Modal para generar elementos |
-
-### Proyecciones
-
-| Componente | Notas |
-|---|---|
-| ProjectionCard | Listado de proyecciones |
-| Button (secondary) | "Ver" |
-| Button (icon) | Editar, Borrar, + |
-| NewProjectionModal | Modal para nueva proyección |
-| ChartCard | Detalle — gráfica |
-| VariablesCard | Detalle — variables |
-| ParamCard | Detalle — parámetros |
-| ResultsCard | Detalle — resultados |
-| Button (primary) | "Generar Reporte" |
-| Button (secondary) | "Volver" |
-
-### Reportes
-
-| Componente | Notas |
-|---|---|
-| Button (primary) | "Descargar toda" |
-| ReportCard | Listado de reportes |
-| Button (secondary) | "Ver" |
-| Button (icon) | Descargar, Borrar |
-
-### Actividad Reciente
-
-| Componente | Notas |
-|---|---|
-| SearchInput | Búsqueda de actividades |
-| TabGroup | Filtros de tipo de actividad |
-| DataTable | Tabla de actividades |
-| Button (primary) | "Generar reporte" |
-
-### Usuarios
-
-| Componente | Notas |
-|---|---|
-| SearchInput | Búsqueda de usuarios |
-| TabGroup | "Activos" / "Inactivos" |
-| DataTable | Tabla de usuarios |
-| Button (primary) | "Agregar Usuario" |
-| Button (icon) | Editar, Eliminar |
-| Badge | Rol / Estatus de cada usuario |
-| AddUserModal | Modal para crear usuario |
-
-### Datos
-
-| Componente | Notas |
-|---|---|
-| SearchInput | Búsqueda de datasets |
-| Button (primary) | "Agregar" |
-| DataCard | Listado de datasets |
-| Button (secondary) | "Editar" |
-| Button (icon) | Borrar |
-| NewDatasetModal | Modal con FileUploadZone + ColumnMapper |
-
----
-
-## 8. Patrones de layout
 
 ### Grid de cards
 
@@ -864,6 +673,7 @@ const [activeTab, setActiveTab] = useState("activos")
 ### Acción con confirmación en Modal
 
 ```tsx
+// El modal actúa como confirmación antes de una acción destructiva
 <Card actions={[{ label: 'Eliminar', onClick: () => setConfirmOpen(true), danger: true }]}>
   ...
 </Card>
@@ -912,22 +722,10 @@ src/
 │   │   │   ├── DataTable.tsx          # ✅ Implementado
 │   │   │   └── index.ts
 │   │   ├── SearchInput/
-│   │   │   ├── SearchInput.tsx        # ✅ Implementado
+│   │   │   ├── SearchInput.tsx
 │   │   │   └── index.ts
-│   │   ├── Badge/
-│   │   │   ├── Badge.tsx
-│   │   │   └── index.ts
-│   │   ├── FilterTag/
-│   │   │   ├── FilterTag.tsx
-│   │   │   └── index.ts
-│   │   ├── TabGroup/
-│   │   │   ├── TabGroup.tsx
-│   │   │   └── index.ts
-│   │   ├── FileUploadZone/
-│   │   │   ├── FileUploadZone.tsx
-│   │   │   └── index.ts
-│   │   ├── Navbar/
-│   │   │   ├── Navbar.tsx
+│   │   ├── Button/
+│   │   │   ├── Button.tsx
 │   │   │   └── index.ts
 │   │   └── UserMenu/
 │   │       ├── UserMenu.tsx
@@ -978,7 +776,6 @@ import Card from '@/components/common/Card'
 
 // evitar
 import Card from '@/components/common/Card/Card'
-```
 ```
 
 ---
