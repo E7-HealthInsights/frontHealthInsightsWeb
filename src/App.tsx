@@ -2,6 +2,8 @@ import { useState } from 'react'
 import './App.css'
 import Modal from './components/common/Modal'
 import Card from './components/common/Card'
+import Button from './components/common/Button'
+import UserMenu from './components/common/UserMenu'
 import DataTable, { type Column } from './components/common/DataTable'
 import { type User } from './types/User'
 import StatCard from './components/features/dashboard/StatCard'
@@ -29,9 +31,24 @@ function App() {
     <div className="min-h-screen bg-[var(--color-hi-bg)] p-8">
       <p>Hello World HealthInsights!</p>
       
-      <button onClick={() => setIsOpen(true)}>
-        Abrir Modal
-      </button>
+      <div className="flex justify-end mb-4">
+        <UserMenu onLogout={() => console.log('logout')} />
+      </div>
+
+      <div className="flex gap-3 mb-6">
+        <Button onClick={() => setIsOpen(true)}>Abrir Modal</Button>
+        <Button variant="secondary">Secundario</Button>
+        <Button variant="icon" ariaLabel="Eliminar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth={2} aria-hidden="true">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14H6L5 6" />
+            <path d="M10 11v6M14 11v6" />
+            <path d="M9 6V4h6v2" />
+          </svg>
+        </Button>
+        <Button loading>Cargando</Button>
+        <Button disabled>Deshabilitado</Button>
+      </div>
 
       <Modal
         isOpen={isOpen}

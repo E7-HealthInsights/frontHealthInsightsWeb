@@ -21,6 +21,14 @@ Guía de referencia del sistema de diseño del proyecto. Cubre tokens de diseño
    - [Modal](#modal)
    - [DataTable](#datatable)
    - [StatCard](#statcard)
+<<<<<<< HEAD
+   - [SearchInput](#searchinput)
+   - [Button](#button)
+   - [UserMenu](#usermenu)
+4. [Patrones de layout](#4-patrones-de-layout)
+5. [Accesibilidad](#5-accesibilidad)
+6. [Estructura de archivos](#6-estructura-de-archivos)
+=======
    - [Navbar](#navbar)
    - [UserMenu](#usermenu)
    - [FileUploadZone](#fileuploadzone)
@@ -32,6 +40,7 @@ Guía de referencia del sistema de diseño del proyecto. Cubre tokens de diseño
 8. [Patrones de layout](#8-patrones-de-layout)
 9. [Accesibilidad](#9-accesibilidad)
 10. [Estructura de archivos](#10-estructura-de-archivos)
+>>>>>>> 10b5977898ab6904ca69f942134ec61a80c703cb
 
 ---
 
@@ -536,6 +545,113 @@ Barra de navegación superior con logo, links de navegación y menú de usuario.
 
 ---
 
+<<<<<<< HEAD
+---
+
+### Button
+
+**Ruta:** `src/components/common/Button/Button.tsx`
+
+Botón reutilizable con tres variantes, tres tamaños, estado de carga y soporte de accesibilidad.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `variant` | `'primary' \| 'secondary' \| 'icon'` | `'primary'` | Estilo visual del botón |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Tamaño (ignorado en variante `icon`) |
+| `disabled` | `boolean` | `false` | Deshabilita el botón |
+| `loading` | `boolean` | `false` | Muestra spinner y deshabilita el botón |
+| `type` | `'button' \| 'submit' \| 'reset'` | `'button'` | Tipo HTML del botón |
+| `ariaLabel` | `string` | — | Requerido en variante `icon` (sin texto visible) |
+| `className` | `string` | `''` | Clases extra para el botón |
+| `onClick` | `() => void` | — | Callback al hacer click |
+| `children` | `ReactNode` | — | Contenido del botón (requerido) |
+
+**Variantes:**
+
+| Variante | Apariencia |
+|---|---|
+| `primary` | Fondo `--color-hi-primary`, texto blanco; hover `--color-hi-primary-dark` |
+| `secondary` | Fondo `--color-hi-surface`, borde `--color-hi-border`; hover `--color-hi-bg` |
+| `icon` | Transparente, sin padding extra — para envolver SVGs; hover `--color-hi-bg` |
+
+**Tamaños:**
+
+| Size | Padding | Font |
+|---|---|---|
+| `sm` | `px-3 py-1.5` | `text-xs` |
+| `md` | `px-4 py-2` | `text-sm` |
+| `lg` | `px-5 py-2.5` | `text-base` |
+
+#### Ejemplos
+
+```tsx
+// Primario
+<Button onClick={handleSave}>Guardar</Button>
+
+// Secundario
+<Button variant="secondary" onClick={handleCancel}>Cancelar</Button>
+
+// Icon (aria-label obligatorio)
+<Button variant="icon" ariaLabel="Eliminar">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <polyline points="3 6 5 6 21 6" />
+    <path d="M19 6l-1 14H6L5 6" />
+    <path d="M10 11v6M14 11v6" />
+    <path d="M9 6V4h6v2" />
+  </svg>
+</Button>
+
+// Cargando
+<Button loading>Guardando…</Button>
+
+// Submit en formulario
+<Button type="submit" size="lg">Crear cuenta</Button>
+```
+
+#### Notas
+
+- En variante `icon`, los `size` no aplican — el padding lo define la propia variante.
+- El spinner del estado `loading` lleva `aria-hidden="true"` al ser decorativo.
+
+---
+
+### UserMenu
+
+**Ruta:** `src/components/common/UserMenu/UserMenu.tsx`
+
+Botón circular con ícono de perfil que despliega un menú de usuario con la opción de cerrar sesión.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `onLogout` | `() => void` | — | Callback al seleccionar "Cerrar Sesión" (requerido) |
+| `className` | `string` | `''` | Clases extra para el contenedor |
+
+#### Ejemplo
+
+```tsx
+<UserMenu onLogout={() => auth.logout()} />
+```
+
+#### Comportamiento
+
+- Click en el botón circular abre/cierra el dropdown.
+- Click fuera del componente cierra el dropdown (listener `mousedown` en `document`).
+- "Cerrar Sesión" llama a `onLogout` y cierra el menú.
+
+#### Estilos
+
+- Botón: círculo `w-9 h-9`, fondo `--color-hi-primary-soft`, ícono `--color-hi-primary`; hover relleno teal.
+- Dropdown: misma superficie y bordes que Card (`--color-hi-surface`, `--color-hi-border`, `--radius-md`).
+- Ítem "Cerrar Sesión": `--color-hi-danger` con ícono de salida.
+
+---
+
+## 4. Patrones de layout
+=======
 ### UserMenu
 
 > **Estado:** Planificado
@@ -725,6 +841,7 @@ Todas envuelven el `Modal` genérico con contenido específico.
 ---
 
 ## 8. Patrones de layout
+>>>>>>> 10b5977898ab6904ca69f942134ec61a80c703cb
 
 ### Grid de cards
 
@@ -762,6 +879,7 @@ Todas envuelven el `Modal` genérico con contenido específico.
 ### Acción con confirmación en Modal
 
 ```tsx
+// El modal actúa como confirmación antes de una acción destructiva
 <Card actions={[{ label: 'Eliminar', onClick: () => setConfirmOpen(true), danger: true }]}>
   ...
 </Card>
@@ -810,6 +928,12 @@ src/
 │   │   │   ├── DataTable.tsx          # ✅ Implementado
 │   │   │   └── index.ts
 │   │   ├── SearchInput/
+<<<<<<< HEAD
+│   │   │   ├── SearchInput.tsx
+│   │   │   └── index.ts
+│   │   ├── Button/
+│   │   │   ├── Button.tsx
+=======
 │   │   │   ├── SearchInput.tsx        # ✅ Implementado
 │   │   │   └── index.ts
 │   │   ├── Badge/
@@ -826,6 +950,7 @@ src/
 │   │   │   └── index.ts
 │   │   ├── Navbar/
 │   │   │   ├── Navbar.tsx
+>>>>>>> 10b5977898ab6904ca69f942134ec61a80c703cb
 │   │   │   └── index.ts
 │   │   └── UserMenu/
 │   │       ├── UserMenu.tsx
