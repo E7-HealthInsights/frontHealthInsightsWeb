@@ -7,6 +7,7 @@ import UserMenu from './components/common/UserMenu'
 import DataTable, { type Column } from './components/common/DataTable'
 import { type User } from './types/User'
 import StatCard from './components/features/dashboard/StatCard'
+import FAB, { type ElementType } from './components/features/dashboard/FAB'
 import GenerateElementModal, { type GeneratePayload } from './components/features/dashboard/GenerateElementModal'
 
  
@@ -108,6 +109,8 @@ function App() {
           data={usersMock}
         />
       </Card>
+
+      <FAB onGenerate={(type: ElementType) => console.log('Generar:', type)} />
     </div>
   )
 }
