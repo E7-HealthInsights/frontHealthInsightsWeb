@@ -1,5 +1,5 @@
 
-import Card from '../../common/Card/Card'
+import Card from '../../../../common/Card/Card'
 
 interface StatCardProps {
   title: string;
