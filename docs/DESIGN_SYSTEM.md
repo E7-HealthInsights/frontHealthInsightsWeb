@@ -502,6 +502,53 @@ Card especializada para mostrar un KPI o métrica con valor destacado. Envuelve 
 
 ---
 
+### LoginCard
+
+> **Estado:** Implementado
+
+**Ruta:** `src/components/features/auth/LoginCard/LoginCard.tsx`
+
+Formulario de inicio de sesión con campos de correo y contraseña, botón primario de envío y texto informativo sobre recuperación de contraseña.
+
+#### Props
+
+| Prop | Tipo | Default | Descripción |
+|---|---|---|---|
+| `onSubmit` | `(email: string, password: string) => void` | — | Callback al enviar el formulario |
+| `loading` | `boolean` | `false` | Muestra spinner en el botón y deshabilita los campos |
+| `error` | `string` | `''` | Mensaje de error bajo el campo de contraseña |
+
+#### Notas
+
+- Maneja su propio estado de `email` y `password` internamente.
+- El texto "Si olvidaste tu contraseña contáctate con el administrador" es estático; no hay acción de recuperación.
+- El botón "Ingresar" usa `type="submit"` y el formulario tiene `noValidate`.
+- Usa `Card`, `InputField` y `Button` de `common/`.
+
+#### Ejemplo
+
+```tsx
+const [error, setError] = useState('')
+const [loading, setLoading] = useState(false)
+
+<LoginCard
+  loading={loading}
+  error={error}
+  onSubmit={async (email, password) => {
+    setLoading(true)
+    try {
+      await auth.login(email, password)
+    } catch {
+      setError('Correo o contraseña incorrectos')
+    } finally {
+      setLoading(false)
+    }
+  }}
+/>
+```
+
+---
+
 ### Navbar
 
 > **Estado:** Planificado
@@ -748,7 +795,10 @@ src/
 │       │   ├── ChartCard.tsx
 │       │   └── MapCard.tsx
 │       └── auth/
-│           └── LoginCard.tsx
+│           └── LoginCard/
+│               ├── LoginCard.tsx          # ✅ Implementado
+│               ├── LoginCard.stories.tsx
+│               └── index.ts
 ├── types/
 │   └── User.ts
 docs/
@@ -808,4 +858,4 @@ import Card from '@/components/common/Card/Card'
 | VariablesCard | Planificado |
 | ParamCard | Planificado |
 | ResultsCard | Planificado |
-| LoginCard | Planificado |
+| LoginCard | Implementado |
