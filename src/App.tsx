@@ -8,6 +8,7 @@ import DataTable, { type Column } from './components/common/DataTable'
 import { type User } from './types/User'
 import StatCard from './components/features/dashboard/StatCard'
 import FAB, { type ElementType } from './components/features/dashboard/FAB'
+import GenerateElementModal, { type GeneratePayload } from './components/features/dashboard/GenerateElementModal'
 
  
 const usersMock: User[] = [
@@ -26,6 +27,11 @@ const activityColumnsMock: Column<User>[] = [
 
 function App() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false)
+
+  const handleGenerateElement = (payload: GeneratePayload) => {
+    console.log('GenerateElementModal payload:', payload)
+  }
 
   return (
 
@@ -38,6 +44,7 @@ function App() {
 
       <div className="flex gap-3 mb-6">
         <Button onClick={() => setIsOpen(true)}>Abrir Modal</Button>
+        <Button onClick={() => setIsGenerateOpen(true)}>Abrir Generate Element</Button>
         <Button variant="secondary">Secundario</Button>
         <Button variant="icon" ariaLabel="Eliminar">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth={2} aria-hidden="true">
@@ -59,6 +66,12 @@ function App() {
       >
         <p>Contenido del modal aquí. Estamos probando</p>
       </Modal>
+
+      <GenerateElementModal
+        isOpen={isGenerateOpen}
+        onClose={() => setIsGenerateOpen(false)}
+        onGenerate={handleGenerateElement}
+      />
       
  
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
