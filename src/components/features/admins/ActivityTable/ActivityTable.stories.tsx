@@ -1,16 +1,43 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import ActivityTable, { type ActivityRow } from './ActivityTable'
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-
 const mockActivity: ActivityRow[] = [
-  { id: 1, nombre: 'Carlos Méndez',  correo: 'carlos.m@hospital.mx', estatus: 'Activo',    lastConnection: '04/03/2026', tiempoConectado: '3h 30m' },
-  { id: 2, nombre: 'Ana García',     correo: 'ana.g@salud.mx',       estatus: 'Activo',    lastConnection: '04/03/2026', tiempoConectado: '1h 45m' },
-  { id: 3, nombre: 'Roberto Silva',  correo: 'r.silva@instituto.mx', estatus: 'Inactivo',  lastConnection: '03/03/2026', tiempoConectado: '0h 20m' },
-  { id: 4, nombre: 'Laura Pérez',    correo: 'l.perez@salud.mx',     estatus: 'En riesgo', lastConnection: '01/03/2026', tiempoConectado: '0h 50m' },
+  {
+    id:        1,
+    admin:     'Carlos Méndez',
+    accion:    'Usuario creado',
+    detalle:   'Alta solicitada por director de área.',
+    timestamp: '04/03/2026 09:15',
+  },
+  {
+    id:        2,
+    admin:     'Ana García',
+    accion:    'Dataset editado',
+    detalle:   'Corrección de metadatos aprobada en reunión de equipo.',
+    timestamp: '04/03/2026 11:42',
+  },
+  {
+    id:        3,
+    admin:     'Carlos Méndez',
+    accion:    'Usuario eliminado',
+    detalle:   'Usuario dio de baja voluntariamente. Oficio #2026-031.',
+    timestamp: '03/03/2026 16:08',
+  },
+  {
+    id:        4,
+    admin:     'Ana García',
+    accion:    'Dataset creado',
+    detalle:   'Carga inicial ENSANUT 2024 aprobada por coordinación.',
+    timestamp: '02/03/2026 10:30',
+  },
+  {
+    id:        5,
+    admin:     'Roberto Silva',
+    accion:    'Dataset eliminado',
+    detalle:   'Dataset duplicado detectado en auditoría interna.',
+    timestamp: '01/03/2026 14:55',
+  },
 ]
-
-// ─── Meta ─────────────────────────────────────────────────────────────────────
 
 const meta: Meta<typeof ActivityTable> = {
   title:     'Features/Actividad/ActivityTable',
@@ -21,16 +48,21 @@ const meta: Meta<typeof ActivityTable> = {
     docs: {
       description: {
         component: `
-**ActivityTable** muestra el historial de sesiones de los usuarios.
+**ActivityTable** muestra la bitácora de acciones críticas ejecutadas por admins.
 
-Los datos provienen de la tabla \`sessions\` del backend:
-- \`lastConnection\` → \`sessions.logged_in_at\` formateado
-- \`tiempoConectado\` → calculado en backend como \`logged_out_at - logged_in_at\`
+Cada registro proviene de la tabla \`activity_log\` en BD:
 
-El color de **Tiempo Conectado** es visual:
-- Verde → ≥ 2 horas
-- Normal → 1–2 horas  
-- Gris → < 1 hora
+| Campo | Descripción |
+|---|---|
+| \`admin\` | Nombre del admin que ejecutó la acción |
+| \`accion\` | Tipo: creado / editado / eliminado × Usuario o Dataset |
+| \`detalle\` | Justificación ingresada por el admin en el modal |
+| \`timestamp\` | Fecha y hora del evento |
+
+Los badges de acción siguen semántica de color:
+- **Verde** → creado
+- **Teal** → editado  
+- **Rojo** → eliminado
         `,
       },
     },
@@ -40,25 +72,26 @@ El color de **Tiempo Conectado** es visual:
 export default meta
 type Story = StoryObj<typeof ActivityTable>
 
-// ─── Stories ──────────────────────────────────────────────────────────────────
-
 export const Default: Story = {
-  name: 'Actividad reciente',
+  name: 'Bitácora con registros',
   args: { data: mockActivity },
 }
 
-export const TiemposVariados: Story = {
-  name: 'Colores de tiempo conectado',
+export const SoloUsuarios: Story = {
+  name: 'Filtrada — solo acciones de Usuarios',
   args: {
-    data: [
-      { id: 1, nombre: 'Usuario A', correo: 'a@test.mx', estatus: 'Activo', lastConnection: '04/03/2026', tiempoConectado: '3h 00m' },
-      { id: 2, nombre: 'Usuario B', correo: 'b@test.mx', estatus: 'Activo', lastConnection: '04/03/2026', tiempoConectado: '1h 30m' },
-      { id: 3, nombre: 'Usuario C', correo: 'c@test.mx', estatus: 'Activo', lastConnection: '04/03/2026', tiempoConectado: '0h 15m' },
-    ],
+    data: mockActivity.filter(r => r.accion.includes('Usuario')),
+  },
+}
+
+export const SoloDatasets: Story = {
+  name: 'Filtrada — solo acciones de Datasets',
+  args: {
+    data: mockActivity.filter(r => r.accion.includes('Dataset')),
   },
 }
 
 export const Vacia: Story = {
-  name: 'Sin actividad (empty state)',
+  name: 'Sin registros (empty state)',
   args: { data: [] },
 }
