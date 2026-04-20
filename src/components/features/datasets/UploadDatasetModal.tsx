@@ -18,11 +18,18 @@ interface ColumnMapping {
   aiSuggested: boolean
 }
 
+interface DatasetMetadata {
+  title: string
+  description: string
+  source: string
+}
+
 interface UploadDatasetModalProps {
   isOpen: boolean
   onClose: () => void
   onConfirm: (payload: {
     file: File
+    metadata: DatasetMetadata
     columnMappings: ColumnMapping[]
   }) => void
 }
@@ -42,6 +49,8 @@ const SQL_TYPE_OPTIONS = [
   { value: 'TIMESTAMP',    label: 'TIMESTAMP — Marca de tiempo' },
   { value: 'JSON',         label: 'JSON — Objeto JSON' },
 ]
+
+const EMPTY_METADATA: DatasetMetadata = { title: '', description: '', source: '' }
 
 // ─── CSV Parser ───────────────────────────────────────────────────────────────
 
@@ -73,73 +82,6 @@ function parseCSV(text: string, maxRows = 5): ParsedCSV {
   return { headers, rows }
 }
 
-// ─── Sub-components ──────────────────────────────────────────────────────────
-
-function UploadStep({
-  onFileSelected,
-}: {
-  onFileSelected: (file: File) => void
-}) {
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  const handleClick = () => inputRef.current?.click()
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) onFileSelected(file)
-  }
-
-  return (
-    <div className="flex flex-col items-center justify-center py-10 gap-5">
-      <p className="text-sm text-[var(--color-hi-text-sub)] text-center max-w-xs">
-        Sube un archivo <span className="font-semibold text-[var(--color-hi-text-main)]">.csv</span> para
-        importarlo como dataset en el sistema.
-      </p>
-
-      <button
-        type="button"
-        onClick={handleClick}
-        className="
-          flex flex-col items-center justify-center gap-3
-          w-full max-w-sm
-          border-2 border-dashed border-[var(--color-hi-border)]
-          rounded-[var(--radius-lg)]
-          px-8 py-10
-          text-[var(--color-hi-text-sub)]
-          hover:border-[var(--color-hi-primary)]
-          hover:bg-[var(--color-hi-primary-soft)]
-          hover:text-[var(--color-hi-primary-dark)]
-          transition-colors cursor-pointer
-          group
-        "
-      >
-        {/* Upload icon */}
-        <svg
-          width="40" height="40" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-          aria-hidden="true"
-          className="group-hover:scale-110 transition-transform"
-        >
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="17 8 12 3 7 8" />
-          <line x1="12" y1="3" x2="12" y2="15" />
-        </svg>
-        <span className="text-sm font-medium">Seleccionar archivo CSV</span>
-        <span className="text-xs opacity-70">Haz clic para abrir el explorador</span>
-      </button>
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".csv,text/csv"
-        onChange={handleChange}
-        className="hidden"
-        aria-hidden="true"
-      />
-    </div>
-  )
-}
-
 // ─── AI suggestion loader ─────────────────────────────────────────────────────
 
 async function fetchAISuggestions(
@@ -169,10 +111,148 @@ No incluyas ningún texto extra, solo el JSON.`
 
   const data = await response.json()
   const text = data.content?.find((b: { type: string }) => b.type === 'text')?.text ?? ''
-
-  // Strip markdown code fences if present
   const clean = text.replace(/```json|```/g, '').trim()
   return JSON.parse(clean)
+}
+
+// ─── Step 1: Upload ──────────────────────────────────────────────────────────
+
+function UploadStep({
+  metadata,
+  onMetadataChange,
+  onFileSelected,
+}: {
+  metadata: DatasetMetadata
+  onMetadataChange: (field: keyof DatasetMetadata, value: string) => void
+  onFileSelected: (file: File) => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleClick = () => inputRef.current?.click()
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) onFileSelected(file)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault()
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files?.[0]
+    if (file) onFileSelected(file)
+  }
+
+  // La zona de upload se habilita solo cuando hay título
+  const canUpload = metadata.title.trim() !== ''
+
+  return (
+    <div className="flex flex-col gap-4">
+
+      {/* ── Título ── */}
+      <InputField
+        label="Título"
+        placeholder="Ej: ENSANUT 2024"
+        value={metadata.title}
+        onChange={v => onMetadataChange('title', v)}
+      />
+
+      {/* ── Descripción (textarea manual; InputField solo soporta <input>) ── */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-semibold text-[var(--color-hi-text-sub)]">
+          Descripción
+        </label>
+        <textarea
+          value={metadata.description}
+          onChange={e => onMetadataChange('description', e.target.value)}
+          placeholder="Describe el contenido y alcance del dataset..."
+          rows={3}
+          className="
+            w-full rounded-[var(--radius-md)]
+            border border-[var(--color-hi-border)]
+            bg-[var(--color-hi-surface)]
+            px-3 py-2 text-sm resize-none
+            text-[var(--color-hi-text-main)]
+            placeholder:text-[var(--color-hi-text-hint)]
+            focus:outline-none
+            focus:border-[var(--color-hi-border-focus)]
+            focus:ring-2 focus:ring-[var(--color-hi-primary)]/20
+            transition-colors
+          "
+        />
+      </div>
+
+      {/* ── Fuente ── */}
+      <InputField
+        label="Fuente"
+        placeholder="Ej: INEGI, SSA, INSP"
+        value={metadata.source}
+        onChange={v => onMetadataChange('source', v)}
+      />
+
+      {/* ── Archivo CSV ── */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-semibold text-[var(--color-hi-text-sub)]">
+          Archivo CSV
+        </label>
+
+        <div
+          onDragOver={canUpload ? handleDragOver : undefined}
+          onDrop={canUpload ? handleDrop : undefined}
+          onClick={canUpload ? handleClick : undefined}
+          onKeyDown={canUpload ? e => e.key === 'Enter' && handleClick() : undefined}
+          role={canUpload ? 'button' : undefined}
+          tabIndex={canUpload ? 0 : undefined}
+          aria-disabled={!canUpload}
+          aria-label="Zona de carga de archivo CSV"
+          className={`
+            flex flex-col items-center justify-center gap-2
+            w-full border-2 border-dashed rounded-[var(--radius-lg)]
+            px-8 py-8 transition-colors
+            ${canUpload
+              ? 'border-[var(--color-hi-border)] text-[var(--color-hi-text-sub)] hover:border-[var(--color-hi-primary)] hover:bg-[var(--color-hi-primary-soft)] hover:text-[var(--color-hi-primary-dark)] cursor-pointer group'
+              : 'border-[var(--color-hi-border)] text-[var(--color-hi-text-hint)] opacity-50 cursor-not-allowed select-none'
+            }
+          `}
+        >
+          <svg
+            width="32" height="32" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+            aria-hidden="true"
+            className={canUpload ? 'group-hover:scale-110 transition-transform' : ''}
+          >
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
+
+          <div className="text-center">
+            <p className="text-sm font-medium">
+              {canUpload ? 'Arrastra tu archivo aquí' : 'Completa el título primero'}
+            </p>
+            {canUpload && (
+              <p className="text-xs opacity-70 mt-0.5">o haz click para seleccionar</p>
+            )}
+          </div>
+
+          {canUpload && (
+            <span className="text-xs text-[var(--color-hi-text-hint)]">
+              Formatos aceptados: CSV (Máx. 50MB)
+            </span>
+          )}
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".csv,text/csv"
+          onChange={handleFileChange}
+          className="hidden"
+          aria-hidden="true"
+        />
+      </div>
+    </div>
+  )
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -183,12 +263,17 @@ export default function UploadDatasetModal({
   onConfirm,
 }: UploadDatasetModalProps) {
   const [step, setStep] = useState<'upload' | 'configure'>('upload')
+  const [metadata, setMetadata] = useState<DatasetMetadata>(EMPTY_METADATA)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [parsedCSV, setParsedCSV] = useState<ParsedCSV | null>(null)
   const [columnMappings, setColumnMappings] = useState<ColumnMapping[]>([])
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState('')
   const [confirming, setConfirming] = useState(false)
+
+  const handleMetadataChange = (field: keyof DatasetMetadata, value: string) => {
+    setMetadata(prev => ({ ...prev, [field]: value }))
+  }
 
   const handleFileSelected = useCallback(async (file: File) => {
     setUploadedFile(file)
@@ -197,7 +282,6 @@ export default function UploadDatasetModal({
     const parsed = parseCSV(text, 5)
     setParsedCSV(parsed)
 
-    // Initialize mappings with original names, default type VARCHAR
     const initialMappings: ColumnMapping[] = parsed.headers.map(h => ({
       originalName: h,
       displayName: h,
@@ -207,7 +291,6 @@ export default function UploadDatasetModal({
     setColumnMappings(initialMappings)
     setStep('configure')
 
-    // Fire AI suggestion in background
     if (parsed.headers.length > 0) {
       setAiLoading(true)
       setAiError('')
@@ -242,7 +325,7 @@ export default function UploadDatasetModal({
     if (!uploadedFile) return
     setConfirming(true)
     try {
-      await onConfirm({ file: uploadedFile, columnMappings })
+      await onConfirm({ file: uploadedFile, metadata, columnMappings })
       handleClose()
     } finally {
       setConfirming(false)
@@ -251,6 +334,7 @@ export default function UploadDatasetModal({
 
   const handleClose = () => {
     setStep('upload')
+    setMetadata(EMPTY_METADATA)
     setUploadedFile(null)
     setParsedCSV(null)
     setColumnMappings([])
@@ -266,22 +350,23 @@ export default function UploadDatasetModal({
     setColumnMappings([])
     setAiLoading(false)
     setAiError('')
+    // metadata se conserva al volver atrás para no perder lo que escribió
   }
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Cargar Dataset"
-      subtitle={
-        step === 'upload'
-          ? 'Importa un archivo CSV al sistema'
-          : uploadedFile?.name ?? ''
-      }
+      title="Nuevo Dataset"
+      subtitle="Sube un nuevo conjunto de datos a la plataforma"
       size="lg"
     >
       {step === 'upload' ? (
-        <UploadStep onFileSelected={handleFileSelected} />
+        <UploadStep
+          metadata={metadata}
+          onMetadataChange={handleMetadataChange}
+          onFileSelected={handleFileSelected}
+        />
       ) : (
         <ConfigureStep
           parsedCSV={parsedCSV!}
@@ -298,7 +383,7 @@ export default function UploadDatasetModal({
   )
 }
 
-// ─── Configure Step ──────────────────────────────────────────────────────────
+// ─── Step 2: Configure ───────────────────────────────────────────────────────
 
 function ConfigureStep({
   parsedCSV,
@@ -451,14 +536,12 @@ function ConfigureStep({
               key={mapping.originalName}
               className="grid grid-cols-[1fr_1fr_1fr] gap-3 items-start"
             >
-              {/* Original column name (read-only) */}
               <div className="flex items-center h-[38px] px-3 rounded-[var(--radius-md)] border border-[var(--color-hi-border)] bg-[var(--color-hi-bg)] overflow-hidden">
                 <span className="text-sm text-[var(--color-hi-text-sub)] truncate font-mono">
                   {mapping.originalName}
                 </span>
               </div>
 
-              {/* Display name input */}
               <input
                 type="text"
                 value={mapping.displayName}
@@ -479,7 +562,6 @@ function ConfigureStep({
                 "
               />
 
-              {/* SQL type dropdown with AI badge */}
               <div className="relative">
                 <Dropdown
                   options={SQL_TYPE_OPTIONS}
