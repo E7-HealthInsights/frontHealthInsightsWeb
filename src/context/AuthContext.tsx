@@ -1,21 +1,54 @@
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { onAuthStateChanged } from 'firebase/auth'
+import axios from 'axios'
+import { auth } from '../lib/firebase'
 import type { UserProfile } from '../services/authService'
 
 interface AuthContextType {
   user:     UserProfile | null
   setUser:  (user: UserProfile | null) => void
+  loading: boolean
 }
 
 const AuthContext = createContext<AuthContextType>({
   user:    null,
   setUser: () => {},
+  loading: false,
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null)
+  const [loading, setLoading] = useState(true)  //true al inicio, se vuelve false tras intentar cargar sesión
+
+  // Al montar el provider, se suscribe a cambios de autenticación en Firebase
+  useEffect(() => {
+    // Firebase notifica si hay sesión activa al cargar la app
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const idToken = await firebaseUser.getIdToken()
+          localStorage.setItem('idToken', idToken)   // renueva si expiró
+          const res = await axios.get<UserProfile>(
+            `${import.meta.env.VITE_API_URL ?? 'http://localhost:8080'}/auth/me`,
+            { headers: { Authorization: `Bearer ${idToken}` } }
+          )
+          setUser(res.data)
+        } catch {
+          setUser(null)
+          localStorage.removeItem('idToken')
+        }
+      } else {
+        setUser(null)
+        localStorage.removeItem('idToken')
+      }
+      setLoading(false)   // ya sabe si hay sesión o no
+    })
+
+    return () => unsubscribe()   // limpia el listener al desmontar
+  }, [])
 
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
+    <AuthContext.Provider value={{ user, setUser, loading }}>
       {children}
     </AuthContext.Provider>
   )
