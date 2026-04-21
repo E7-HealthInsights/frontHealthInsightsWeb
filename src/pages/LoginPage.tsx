@@ -1,20 +1,26 @@
 import { useState } from 'react'
 import LoginCard from '../components/features/auth/LoginCard'
 import { login } from '../services/authService'
+import { useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
-
+  const location = useLocation()
+  const sessionMessage = (location.state as { message?: string })?.message ?? ''
+  const navigate = useNavigate()
+  const { setUser } = useAuth()
 
 const handleSubmit = async (email: string, password: string) => {
   setError('')
   setLoading(true)
   try {
     const user = await login(email, password)
-    // ✅ Login exitoso — aquí redirigirás al dashboard cuando tengas router
-    console.log('Usuario autenticado:', user)
-    // navigate('/dashboard')  ← cuando agregues react-router-dom
+    setUser(user)
+    navigate('/', { replace: true })
+    // navigate('/dashboard')  ← cuando haya dashboard
   } catch (err: unknown) {
     if (err instanceof Error) {
       // Firebase lanza códigos específicos, los mapeamos a mensajes amigables
@@ -119,6 +125,12 @@ const handleSubmit = async (email: string, password: string) => {
             HealthInsights
           </span>
         </div>
+
+        {sessionMessage && (
+          <div className="mb-4 w-full max-w-sm rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+            {sessionMessage}
+          </div>
+        )}
 
         <LoginCard
           loading={loading}
