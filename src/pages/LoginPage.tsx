@@ -1,23 +1,36 @@
 import { useState } from 'react'
 import LoginCard from '../components/features/auth/LoginCard'
+import { login } from '../services/authService'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
-  const handleSubmit = async (email: string, password: string) => {
-    setError('')
-    setLoading(true)
-    try {
-      // TODO: integrar Firebase Auth
-      console.log('Login attempt:', email, password)
-      await new Promise(resolve => setTimeout(resolve, 1200))
-    } catch {
-      setError('Correo o contraseña incorrectos. Intenta de nuevo.')
-    } finally {
-      setLoading(false)
+
+const handleSubmit = async (email: string, password: string) => {
+  setError('')
+  setLoading(true)
+  try {
+    const user = await login(email, password)
+    // ✅ Login exitoso — aquí redirigirás al dashboard cuando tengas router
+    console.log('Usuario autenticado:', user)
+    // navigate('/dashboard')  ← cuando agregues react-router-dom
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      // Firebase lanza códigos específicos, los mapeamos a mensajes amigables
+      const msg = err.message
+      if (msg.includes('invalid-credential') || msg.includes('wrong-password') || msg.includes('user-not-found')) {
+        setError('Correo o contraseña incorrectos. Intenta de nuevo.')
+      } else {
+        setError(msg)
+      }
+    } else {
+      setError('Ocurrió un error inesperado.')
     }
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen flex">
