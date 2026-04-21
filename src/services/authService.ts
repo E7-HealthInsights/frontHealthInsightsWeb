@@ -37,4 +37,5 @@ export async function login(email: string, password: string): Promise<UserProfil
 
 export async function logout(): Promise<void> {
   await signOut(auth)
+  localStorage.removeItem('idToken')
 }
