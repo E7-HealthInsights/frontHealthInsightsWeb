@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import Modal    from '../../../common/Modal/Modal'
 import Button   from '../../../common/Button/Button'
 import Dropdown from '../../../common/Dropdown/Dropdown'
+import { getDatasets, getMetricasByDataset } from '../../../../services/datasetService'
+import type { DatasetOption, MetricaOption } from '../../../../services/datasetService'
 import type { ElementType, ChartSubtype, ParamValue, GeneratePayload } from '../../../../types/Widget'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -18,13 +20,7 @@ interface GenerateElementModalProps {
   onGenerate:  (payload: GeneratePayload) => void
 }
 
-// ── Config estática (mock — TODO: se reemplaza en Bloque 2) ────────────────────────
-
-const DATA_SOURCE_OPTIONS = [
-  { value: 'diabetes_2023',     label: 'Diabetes México 2023'   },
-  { value: 'hipertension_2022', label: 'Hipertensión 2022'      },
-  { value: 'obesidad_2021',     label: 'Obesidad Nacional 2021' },
-]
+// ── Config estática ───────────────────────────────────────────────────────────
 
 const CHART_OPTIONS_BY_TYPE: Record<ElementType, { value: ChartSubtype; label: string }[]> = {
   indicador: [{ value: 'card',       label: 'Card informativo' }],
@@ -34,8 +30,8 @@ const CHART_OPTIONS_BY_TYPE: Record<ElementType, { value: ChartSubtype; label: s
     { value: 'pastel',     label: 'Pastel'     },
     { value: 'dispersion', label: 'Dispersión' },
   ],
-  tabla:     [{ value: 'tabla', label: 'Tabla de datos'   }],
-  mapa:      [{ value: 'card', label: 'Mapa coroplético'  }],
+  tabla:     [{ value: 'tabla', label: 'Tabla de datos'  }],
+  mapa:      [{ value: 'card', label: 'Mapa coroplético' }],
 }
 
 const PARAM_SLOTS: Record<ChartSubtype, ParamSlot[]> = {
@@ -44,14 +40,11 @@ const PARAM_SLOTS: Record<ChartSubtype, ParamSlot[]> = {
   lineas:     [{ key: 'eje_x',     label: 'Eje X'     }, { key: 'eje_y',  label: 'Eje Y'  }],
   pastel:     [{ key: 'categoria', label: 'Categoría' }, { key: 'valor',  label: 'Valor'  }],
   dispersion: [{ key: 'eje_x',     label: 'Eje X'     }, { key: 'eje_y',  label: 'Eje Y'  }],
-  tabla:      [{ key: 'col_1',     label: 'Columna 1' }, { key: 'col_2', label: 'Columna 2' }, { key: 'col_3', label: 'Columna 3' }],
-}
-
-// TODO Bloque 2: reemplazar con GET /datasets/{id}/metricas
-const SOURCE_COLUMNS: Record<string, string[]> = {
-  diabetes_2023:     ['estado', 'anio', 'casos', 'defunciones', 'edad_promedio', 'sexo', 'presupuesto'],
-  hipertension_2022: ['estado', 'anio', 'casos', 'prevalencia', 'edad_promedio', 'sexo'],
-  obesidad_2021:     ['estado', 'anio', 'imc_promedio', 'poblacion', 'porcentaje', 'sexo'],
+  tabla:      [
+    { key: 'col_1', label: 'Columna 1' },
+    { key: 'col_2', label: 'Columna 2' },
+    { key: 'col_3', label: 'Columna 3' },
+  ],
 }
 
 const ELEMENT_LABELS: Record<ElementType, string> = {
@@ -63,9 +56,15 @@ const ELEMENT_LABELS: Record<ElementType, string> = {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const toOptions = (cols: string[]) => cols.map(c => ({ value: c, label: c }))
 const emptyParams = (slots: ParamSlot[]): ParamValue[] =>
   slots.map(s => ({ slotKey: s.key, column: '' }))
+
+// Convierte MetricaOption[] al formato { value, label } que espera Dropdown
+const metricasToOptions = (metricas: MetricaOption[]) =>
+  metricas.map(m => ({
+    value: m.columnaCsv,
+    label: m.unidad ? `${m.nombre} (${m.unidad})` : m.nombre,
+  }))
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -79,6 +78,7 @@ export default function GenerateElementModal({
   const chartOptions = CHART_OPTIONS_BY_TYPE[elementType]
   const autoType     = chartOptions.length === 1 ? chartOptions[0].value : ''
 
+  // Form state
   const [dataSource,     setDataSource]     = useState('')
   const [chartType,      setChartType]      = useState<ChartSubtype | ''>(autoType)
   const [title,          setTitle]          = useState('')
@@ -86,10 +86,40 @@ export default function GenerateElementModal({
   const [previewReady,   setPreviewReady]   = useState(false)
   const [previewLoading, setPreviewLoading] = useState(false)
 
-  // Preselecciona subtipo si hay solo uno (indicador, tabla, mapa)
+  // Datos del backend
+  const [datasets,        setDatasets]        = useState<DatasetOption[]>([])
+  const [metricas,        setMetricas]        = useState<MetricaOption[]>([])
+  const [loadingDatasets, setLoadingDatasets] = useState(false)
+  const [loadingMetricas, setLoadingMetricas] = useState(false)
+  const [errorDatasets,   setErrorDatasets]   = useState<string | null>(null)
+  const [errorMetricas,   setErrorMetricas]   = useState<string | null>(null)
+
+  // ── Efectos ────────────────────────────────────────────────────────────────
+
+  // Carga los datasets al abrir el modal
   useEffect(() => {
-    if (isOpen) setChartType(autoType)
+    if (!isOpen) return
+    setChartType(autoType)
+    setLoadingDatasets(true)
+    setErrorDatasets(null)
+    getDatasets()
+      .then(setDatasets)
+      .catch(() => setErrorDatasets('No se pudieron cargar las fuentes de datos.'))
+      .finally(() => setLoadingDatasets(false))
   }, [isOpen, autoType])
+
+  // Carga las métricas cuando el usuario elige una fuente
+  useEffect(() => {
+    if (!dataSource) { setMetricas([]); return }
+    setLoadingMetricas(true)
+    setErrorMetricas(null)
+    setParams([])
+    setPreviewReady(false)
+    getMetricasByDataset(dataSource)
+      .then(setMetricas)
+      .catch(() => setErrorMetricas('No se pudieron cargar las columnas de este dataset.'))
+      .finally(() => setLoadingMetricas(false))
+  }, [dataSource])
 
   // Reinicia parámetros cuando cambia el subtipo
   useEffect(() => {
@@ -98,19 +128,14 @@ export default function GenerateElementModal({
     setPreviewReady(false)
   }, [chartType])
 
-  // Limpia columnas cuando cambia la fuente
-  useEffect(() => {
-    setParams(prev => prev.map(p => ({ ...p, column: '' })))
-    setPreviewReady(false)
-  }, [dataSource])
-
   // ── Derived ───────────────────────────────────────────────────────────────
 
-  const showSubtype = chartOptions.length > 1
-  const showParams  = !!dataSource && !!chartType
-  const slots       = chartType ? PARAM_SLOTS[chartType] : []
-  const columnOpts  = dataSource ? toOptions(SOURCE_COLUMNS[dataSource] ?? []) : []
-  const allFilled   = showParams
+  const showSubtype  = chartOptions.length > 1
+  const showParams   = !!dataSource && !!chartType && metricas.length > 0
+  const slots        = chartType ? PARAM_SLOTS[chartType] : []
+  const columnOpts   = metricasToOptions(metricas)
+  const datasetOpts  = datasets.map(d => ({ value: d.id, label: d.nombre }))
+  const allFilled    = showParams
     && params.length > 0
     && params.every(p => p.column !== '')
     && title.trim() !== ''
@@ -124,7 +149,7 @@ export default function GenerateElementModal({
 
   const handlePreview = async () => {
     setPreviewLoading(true)
-    // TODO Bloque 2: llamada real al backend
+    // TODO Bloque 3: llamar a GET /datasets/{id}/data con los params para traer datos reales
     await new Promise(res => setTimeout(res, 800))
     setPreviewLoading(false)
     setPreviewReady(true)
@@ -141,7 +166,10 @@ export default function GenerateElementModal({
     setChartType(autoType)
     setTitle('')
     setParams([])
+    setMetricas([])
     setPreviewReady(false)
+    setErrorDatasets(null)
+    setErrorMetricas(null)
     onClose()
   }
 
@@ -180,13 +208,18 @@ export default function GenerateElementModal({
         </div>
 
         {/* 1. Fuente de datos */}
-        <Dropdown
-          label="Fuente de datos"
-          placeholder="Selecciona una fuente…"
-          options={DATA_SOURCE_OPTIONS}
-          value={dataSource}
-          onChange={val => { setDataSource(val); setPreviewReady(false) }}
-        />
+        {errorDatasets ? (
+          <InlineError message={errorDatasets} />
+        ) : (
+          <Dropdown
+            label="Fuente de datos"
+            placeholder={loadingDatasets ? 'Cargando fuentes…' : 'Selecciona una fuente…'}
+            options={datasetOpts}
+            value={dataSource}
+            onChange={val => { setDataSource(val); setPreviewReady(false) }}
+            disabled={loadingDatasets}
+          />
+        )}
 
         {/* 2. Subtipo de gráfica — solo si hay más de una opción */}
         {showSubtype && (
@@ -196,12 +229,12 @@ export default function GenerateElementModal({
             options={chartOptions}
             value={chartType}
             onChange={val => { setChartType(val as ChartSubtype); setPreviewReady(false) }}
-            disabled={!dataSource}
+            disabled={!dataSource || loadingDatasets}
           />
         )}
 
         {/* 3. Parámetros */}
-        {showParams && (
+        {!!dataSource && !!chartType && (
           <section className="
             flex flex-col gap-3 p-4
             rounded-[var(--radius-md)]
@@ -211,19 +244,26 @@ export default function GenerateElementModal({
             <span className="text-sm font-semibold text-[var(--color-hi-text-sub)]">
               Parámetros
             </span>
-            {slots.map(slot => {
-              const current = params.find(p => p.slotKey === slot.key)?.column ?? ''
-              return (
-                <Dropdown
-                  key={slot.key}
-                  label={slot.label}
-                  placeholder="Selecciona una columna…"
-                  options={columnOpts}
-                  value={current}
-                  onChange={val => handleParamChange(slot.key, val)}
-                />
-              )
-            })}
+
+            {loadingMetricas ? (
+              <p className="text-xs text-[var(--color-hi-text-hint)]">Cargando columnas…</p>
+            ) : errorMetricas ? (
+              <InlineError message={errorMetricas} />
+            ) : (
+              slots.map(slot => {
+                const current = params.find(p => p.slotKey === slot.key)?.column ?? ''
+                return (
+                  <Dropdown
+                    key={slot.key}
+                    label={slot.label}
+                    placeholder="Selecciona una columna…"
+                    options={columnOpts}
+                    value={current}
+                    onChange={val => handleParamChange(slot.key, val)}
+                  />
+                )
+              })
+            )}
           </section>
         )}
 
@@ -286,7 +326,15 @@ export default function GenerateElementModal({
   )
 }
 
-// ── PreviewPlaceholder ─────────────────────────────────────────────────────────
+// ── InlineError ───────────────────────────────────────────────────────────────
+
+function InlineError({ message }: { message: string }) {
+  return (
+    <p className="text-xs text-[var(--color-hi-danger)] px-1">{message}</p>
+  )
+}
+
+// ── PreviewPlaceholder ────────────────────────────────────────────────────────
 
 function PreviewPlaceholder({ chartType }: { chartType: ChartSubtype }) {
   const bars = [55, 80, 45, 90, 65, 70]
@@ -349,7 +397,6 @@ function PreviewPlaceholder({ chartType }: { chartType: ChartSubtype }) {
     )
   }
 
-  // Dispersión
   const pts = [[30,80],[60,40],[90,65],[50,25],[120,55],[80,90],[140,35],[110,75]]
   return (
     <svg viewBox="0 0 180 110" className="w-full px-4" aria-hidden="true">
