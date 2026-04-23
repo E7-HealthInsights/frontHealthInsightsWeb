@@ -13,12 +13,13 @@
   },
   "dependencies": {
     "@types/d3-geo": "^3.1.0",
-    "axios": "^1.15.1",
+    "axios": "^1.15.2",
     "d3-geo": "^3.1.1",
     "d3-scale": "^4.0.2",
     "firebase": "^12.12.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-is": "^19.2.5",
     "react-router-dom": "^7.14.1",
     "react-simple-maps": "^3.0.0",
     "recharts": "^3.8.1"

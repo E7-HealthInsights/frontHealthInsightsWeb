@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react'
 import GenerateReportButton from './GenerateReportButton'
 
 const meta: Meta<typeof GenerateReportButton> = {
-  title: 'Common/GenerateReportButton',
+  title: 'Features/Reportes/GenerateReportButton',
   component: GenerateReportButton,
   parameters: { layout: 'centered' },
   argTypes: {
