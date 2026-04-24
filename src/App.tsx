@@ -20,6 +20,11 @@ export default function App() {
             <Route path="/usuarios"     element={<div>Usuarios</div>} />
             <Route path="/datos"        element={<div>Datos</div>} />
 
+            {/* Directores */}
+            <Route path="/director/general"   element={<DashboardPage />} />
+            <Route path="/director/finanzas"  element={<DashboardPage />} />
+            <Route path="/director/marketing" element={<DashboardPage />} />
+
             {/* Admin */}
             <Route path="/admin"          element={<AdminPage />} />
             <Route path="/admin/usuarios" element={<UsersPage />} />

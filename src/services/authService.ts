@@ -14,19 +14,32 @@ export interface UserProfile {
 }
 
 export async function login(email: string, password: string): Promise<UserProfile> {
-  const credential = await signInWithEmailAndPassword(auth, email, password)
+  console.log('[login] ▶️  start', { email, API_URL })
 
+  console.log('[login] 1/3 signInWithEmailAndPassword…')
+  const credential = await signInWithEmailAndPassword(auth, email, password)
+  console.log('[login] 1/3 ✅ firebase uid:', credential.user.uid)
+
+  console.log('[login] 2/3 getIdToken…')
   const idToken = await credential.user.getIdToken()
+  console.log('[login] 2/3 ✅ idToken length:', idToken.length)
 
   try {
+    console.log('[login] 3/3 GET', `${API_URL}/auth/me`)
     const response = await axios.get<UserProfile>(`${API_URL}/auth/me`, {
       headers: {
         Authorization: `Bearer ${idToken}`,
       },
+      timeout: 10000,
     })
+    console.log('[login] 3/3 ✅ /auth/me response:', response.status, response.data)
     return response.data
 
   } catch (error) {
+    console.error('[login] 3/3 ❌ /auth/me failed:', error)
+    if (axios.isAxiosError(error)) {
+      console.error('[login]    status:', error.response?.status, 'data:', error.response?.data, 'code:', error.code)
+    }
     await signOut(auth) // limpiamos sesión de Firebase si el back falla
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       throw new Error('Tu cuenta no tiene acceso a esta plataforma.')

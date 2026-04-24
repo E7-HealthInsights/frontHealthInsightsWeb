@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import LoginCard from '../components/features/auth/LoginCard'
 import { login } from '../services/authService'
 import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { getDefaultRouteForRole } from '../utils/roleRoutes'
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -11,17 +12,28 @@ export default function LoginPage() {
   const location = useLocation()
   const sessionMessage = (location.state as { message?: string })?.message ?? ''
   const navigate = useNavigate()
-  const { setUser } = useAuth()
+  const { user, setUser, loading: authLoading } = useAuth()
+
+  // Si el usuario ya está autenticado (p.ej. refresh en /login), redirigir según rol.
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate(getDefaultRouteForRole(user.role), { replace: true })
+    }
+  }, [authLoading, user, navigate])
 
 const handleSubmit = async (email: string, password: string) => {
+  console.log('[LoginPage] handleSubmit ▶️', email)
   setError('')
   setLoading(true)
   try {
     const user = await login(email, password)
+    console.log('[LoginPage] login OK, user:', user)
     setUser(user)
-    navigate('/', { replace: true })
-    // navigate('/dashboard')  ← cuando haya dashboard
+    const route = getDefaultRouteForRole(user.role)
+    console.log('[LoginPage] navigate →', route, '(role:', user.role, ')')
+    navigate(route, { replace: true })
   } catch (err: unknown) {
+    console.error('[LoginPage] handleSubmit ❌', err)
     if (err instanceof Error) {
       // Firebase lanza códigos específicos, los mapeamos a mensajes amigables
       const msg = err.message
@@ -34,6 +46,7 @@ const handleSubmit = async (email: string, password: string) => {
       setError('Ocurrió un error inesperado.')
     }
   } finally {
+    console.log('[LoginPage] handleSubmit finished, loading=false')
     setLoading(false)
   }
 }
