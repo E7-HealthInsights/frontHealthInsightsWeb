@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
+import { createUser }  from '../services/userService'
 
 import Navbar           from '../components/common/Navbar'
 import Card             from '../components/common/Card'
@@ -54,12 +55,23 @@ export default function UsersPage() {
     navigate('/login', { replace: true })
   }
 
-  const handleCreate = (payload: NewUserPayload) => {
+  const handleCreate = async (payload: NewUserPayload) => {
+    const created = await createUser({
+      name:     payload.nombre,
+      lastName: payload.apellido,
+      email:    payload.correo,
+      password: payload.password,
+      roleId:   payload.roleId,
+    })
     const newUser: User = {
-      ...payload,
-      id:     String(Date.now()),
-      fecha:  new Date().toISOString().slice(0, 10),
-      tiempo: 'Recién creado',
+      id:       created.id,
+      nombre:   created.name,
+      apellido: created.lastName,
+      correo:   created.email,
+      rol:      payload.rol,
+      estatus:  payload.estatus,
+      fecha:    new Date().toISOString().slice(0, 10),
+      tiempo:   'Recién creado',
     }
     setUsers(prev => [...prev, newUser])
   }

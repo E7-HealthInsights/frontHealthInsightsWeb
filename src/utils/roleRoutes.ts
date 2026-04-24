@@ -6,11 +6,15 @@ export const ROUTES = {
 } as const
 
 const ROLE_DEFAULT_ROUTE: Record<string, string> = {
-  'Admin':         ROUTES.admin,
-  'Administrador': ROUTES.admin,
-  'D.G.':          ROUTES.directorGeneral,
-  'D.F.':          ROUTES.directorFinanzas,
-  'D.M.':          ROUTES.directorMarketing,
+  'Admin':                  ROUTES.admin,
+  'Administrador':          ROUTES.admin,
+  'ADMIN':                  ROUTES.admin,
+  'D.G.':                   ROUTES.directorGeneral,
+  'DIRECTOR_GENERAL':       ROUTES.directorGeneral,
+  'D.F.':                   ROUTES.directorFinanzas,
+  'DIRECTOR_FINANZAS':      ROUTES.directorFinanzas,
+  'D.M.':                   ROUTES.directorMarketing,
+  'DIRECTOR_MERCADOTECNIA': ROUTES.directorMarketing,
 }
 
 const FALLBACK_ROUTE = '/login'
