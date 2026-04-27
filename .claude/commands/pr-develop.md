@@ -2,25 +2,44 @@
 description: Commit cambios de la rama actual, push a origin y abre PR a develop con el template del repo
 ---
 
-Tu tarea es hacer shipping de los cambios de la rama actual contra `develop`.
+Tu tarea es hacer shipping de los cambios de la rama actual contra `develop`. Optimiza por velocidad: batch todos los comandos de inspección en paralelo y NO leas diffs archivo por archivo — con commit messages + lista de archivos + `--stat` ya tienes suficiente para llenar el template.
 
-## Paso 1 — Commit
+## Paso 0 — Inspección (UN solo bloque paralelo)
 
-- Corre `git status` y `git diff` (en paralelo) para ver el estado.
-- Si hay cambios sin commitear:
-  - Stagea archivos específicos por nombre (no uses `git add -A` / `git add .`).
-  - Revisa `git log --oneline -5` para seguir el estilo de mensajes del repo.
-  - Haz un commit con mensaje claro en español que enfatice el **por qué** del cambio.
-- Si no hay cambios pendientes, continúa al Paso 2.
+Corre EN PARALELO, en un solo mensaje con múltiples tool calls:
+
+```
+git status
+git log --oneline -5
+git log develop..HEAD --oneline
+git diff --name-status develop...HEAD
+git diff develop...HEAD --stat
+git remote -v
+```
+
+- Si `git status` muestra cambios sin commitear → Paso 1.
+- Si no hay cambios pendientes pero `git log develop..HEAD` tiene commits → salta directo al Paso 2.
+- Si `git remote -v` no coincide con la org esperada (ej. repo movido a otra org), recuérdalo para los Pasos 2 y 3 — vas a necesitar el URL/slug correcto.
+
+**NO leas el contenido de diffs individuales de cada archivo.** El body del PR se arma con los commit messages + la lista de archivos + una línea corta por archivo. Solo lee un diff específico si hay ambigüedad real que no puedes resolver con esa info.
+
+## Paso 1 — Commit (solo si hay cambios pendientes)
+
+- Stagea archivos específicos por nombre (no uses `git add -A` / `git add .`).
+- Nunca commitees `.claude/settings.local.json` (settings locales del usuario). `.claude/commands/*.md` sí se puede si el usuario lo pide.
+- Mensaje en español, sigue el estilo del `git log --oneline -5` que ya corriste. Enfatiza el **por qué**.
 
 ## Paso 2 — Push
 
-- Pushea la rama actual a `origin`. Si no tiene upstream, usa `git push -u origin HEAD`.
-- Si el `push` imprime un mensaje de "This repository moved" con otra org/repo, recuérdalo: vas a necesitar pasar `--repo <org>/<repo>` en el paso siguiente.
+- `git push` si ya tiene upstream; si no, `git push -u origin HEAD`.
+- **Si el output dice `This repository moved. Please use the new location: https://github.com/<NEW_ORG>/<REPO>.git`**: el remote `origin` está desactualizado y `gh pr create` NO sigue redirects. Haz esto de inmediato (sin tocar `git config`):
+  1. `git push https://github.com/<NEW_ORG>/<REPO>.git HEAD:<nombre-rama>` para asegurar que la rama existe en el repo nuevo.
+  2. En el Paso 3 usa SIEMPRE `--repo <NEW_ORG>/<REPO> --head <nombre-rama>` (solo el nombre de rama, sin prefix `org:`).
+  3. Avísale al usuario al final que su remote `origin` sigue apuntando al repo viejo y ofrece actualizarlo con `git remote set-url` si quiere.
 
 ## Paso 3 — Pull Request
 
-Crea el PR contra `develop`:
+Forma base:
 
 ```
 gh pr create --base develop --title "<título>" --body "$(cat <<'EOF'
@@ -29,9 +48,10 @@ EOF
 )"
 ```
 
-- Agrega `--repo <org>/<repo>` si el remote redirigió en el paso anterior.
-- **Título**: corto (< 70 chars), resumen del cambio, en español, estilo `tipo: descripción` (`feat:`, `fix:`, `refactor:`, etc.).
-- **Body**: usa EXACTAMENTE este template, llenando cada sección según los cambios reales de la rama:
+Si el repo se movió en el Paso 2, agrega `--repo <NEW_ORG>/<REPO> --head <nombre-rama>`.
+
+- **Título**: < 70 chars, español, estilo `tipo: descripción` (`feat:`, `fix:`, `refactor:`, `chore:`, etc.). Resume el cambio principal de la rama, no de un commit específico.
+- **Body**: usa EXACTAMENTE este template:
 
 ```markdown
 ## ¿Qué hace este PR?
@@ -61,17 +81,18 @@ HU__
 
 ### Reglas para llenar el template
 
-- **Archivos**: usa `git diff --name-status develop...HEAD` y lista UN item por archivo real tocado en la rama (no solo el último commit). Marca cada uno como `nuevo` o `modificado` según corresponda y agrega una línea describiendo qué hace / qué cambió.
-- **¿Qué hace este PR?** y **¿Cómo?**: derívalos del diff real y de los commits de la rama (`git log develop..HEAD --oneline`).
-- **¿Por qué?**: úsalo para el contexto de negocio/HU. Si el usuario dio contexto en la conversación o en los argumentos del comando, úsalo. Si no hay información clara, escribe `_Pendiente: completar con el contexto de la historia de usuario._` y avísale al usuario al final.
-- **Relacionado**: si el usuario pasó un número de HU/RNF en los argumentos del comando o se infiere del nombre de la rama (ej. `feature/HI-482-...` → `HU HI-482`), úsalo. Si no, deja `HU__` literal como placeholder.
-- **Screenshots**: deja la nota de pendiente tal cual; el usuario las agrega manualmente después.
-- **NO agregues** secciones de "Test plan", "🤖 Generated with Claude Code", ni Co-Authored-By al body del PR — solo el template de arriba.
+- **Archivos**: UN item por archivo de `git diff --name-status develop...HEAD`. Marca `nuevo` (status `A`) o `modificado` (status `M`); para `R` usa `renombrado`, para `D` usa `eliminado`. Descripción de una línea por archivo.
+- **¿Qué hace este PR?** y **¿Cómo?**: derívalos de los commit messages (`git log develop..HEAD --oneline`) + nombres de archivos. No abras los diffs solo para esto.
+- **¿Por qué?**: contexto de negocio/HU. Si el usuario dio contexto en la conversación o en `$ARGUMENTS`, úsalo. Si no, escribe `_Pendiente: completar con el contexto de la historia de usuario._` y avísale al final.
+- **Relacionado**: si `$ARGUMENTS` trae un ID (ej. `HI-482`) o se infiere del nombre de la rama (`feature/HI-482-...` → `HU HI-482`), úsalo. Si no, deja `HU__` literal.
+- **Screenshots**: deja la nota de pendiente tal cual.
+- **NO agregues** "Test plan", "🤖 Generated with Claude Code", ni Co-Authored-By al body del PR.
 
 ## Al terminar
 
 - Imprime la URL del PR devuelta por `gh pr create`.
-- Si alguna sección quedó como "Pendiente", menciónalo explícitamente para que el usuario la complete.
+- Lista explícitamente qué secciones quedaron como "Pendiente" y qué necesita el usuario para completarlas.
+- Si hubo redirect de repo en el Paso 2, menciónalo y ofrece actualizar `origin`.
 
 ## Argumentos del usuario
 
