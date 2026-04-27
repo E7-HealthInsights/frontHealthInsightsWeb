@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import PrivateRoute    from './components/common/PrivateRoute/PrivateRoute'
+import AdminRoute      from './components/common/AdminRoute/AdminRoute'
 import LoginPage       from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import AdminPage     from './pages/AdminPage'
@@ -26,9 +27,11 @@ export default function App() {
             <Route path="/director/marketing" element={<DashboardPage />} />
 
             {/* Admin */}
-            <Route path="/admin"          element={<AdminPage />} />
-            <Route path="/admin/usuarios" element={<UsersPage />} />
-            <Route path="/admin/datos"    element={<div>Datos (Admin)</div>} />
+            <Route element={<AdminRoute />}>
+              <Route path="/admin"          element={<AdminPage />} />
+              <Route path="/admin/usuarios" element={<UsersPage />} />
+              <Route path="/admin/datos"    element={<div>Datos (Admin)</div>} />
+            </Route>
           </Route>
 
           <Route path="*" element={<Navigate to="/login" replace />} />

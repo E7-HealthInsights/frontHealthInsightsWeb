@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
-import { createUser }  from '../services/userService'
+import { createUser, getUsers }  from '../services/userService'
 
 import Navbar           from '../components/common/Navbar'
 import Card             from '../components/common/Card'
@@ -13,6 +13,7 @@ import UsersTable       from '../components/features/admins/UsersTable/UsersTabl
 import CreateUserModal, { type NewUserPayload } from '../components/features/admins/CreateUserModal/CreateUserModal'
 
 import type { User } from '../types/User'
+import type { UserResponse } from '../services/userService'
 
 // ── Nav links ─────────────────────────────────────────────────────────────────
 
@@ -27,16 +28,16 @@ const TABS = [
   { id: 'inactivos', label: 'Usuarios Inactivos' },
 ]
 
-// ── Datos mock ────────────────────────────────────────────────────────────────
+// ── Mappers ───────────────────────────────────────────────────────────────────
 
-const MOCK_USERS: User[] = [
-  { id: '1', nombre: 'María',  apellido: 'López',    correo: 'maria.lopez@hi.mx',   fecha: '2026-01-10', tiempo: '3 meses', rol: 'D.G.',  estatus: 'Activo'   },
-  { id: '2', nombre: 'Carlos', apellido: 'Ruiz',     correo: 'carlos.ruiz@hi.mx',   fecha: '2026-02-14', tiempo: '2 meses', rol: 'D.F.',  estatus: 'Activo'   },
-  { id: '3', nombre: 'Ana',    apellido: 'Martínez', correo: 'ana.martinez@hi.mx',  fecha: '2025-11-05', tiempo: '5 meses', rol: 'D.M.',  estatus: 'Activo'   },
-  { id: '4', nombre: 'Pedro',  apellido: 'Sánchez',  correo: 'pedro.sanchez@hi.mx', fecha: '2025-09-20', tiempo: '7 meses', rol: 'D.F.',  estatus: 'Inactivo' },
-  { id: '5', nombre: 'Lucía',  apellido: 'Flores',   correo: 'lucia.flores@hi.mx',  fecha: '2026-03-01', tiempo: '1 mes',   rol: 'Admin', estatus: 'Activo'   },
-  { id: '6', nombre: 'Jorge',  apellido: 'Mendoza',  correo: 'jorge.mendoza@hi.mx', fecha: '2025-08-15', tiempo: '8 meses', rol: 'D.G.',  estatus: 'Inactivo' },
-]
+const toUser = (u: UserResponse): User => ({
+  id:       u.id,
+  nombre:   u.name,
+  apellido: u.lastName,
+  correo:   u.email,
+  rol:      u.role,
+  estatus:  u.status ? 'Activo' : 'Inactivo',
+})
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -47,7 +48,13 @@ export default function UsersPage() {
   const [tab,         setTab]         = useState('activos')
   const [search,      setSearch]      = useState('')
   const [modalOpen,   setModalOpen]   = useState(false)
-  const [users,       setUsers]       = useState<User[]>(MOCK_USERS)
+  const [users,       setUsers]       = useState<User[]>([])
+
+  useEffect(() => {
+    getUsers()
+      .then(list => setUsers(list.map(toUser)))
+      .catch(err => console.error('Error al cargar usuarios', err))
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -63,17 +70,7 @@ export default function UsersPage() {
       password: payload.password,
       roleId:   payload.roleId,
     })
-    const newUser: User = {
-      id:       created.id,
-      nombre:   created.name,
-      apellido: created.lastName,
-      correo:   created.email,
-      rol:      payload.rol,
-      estatus:  payload.estatus,
-      fecha:    new Date().toISOString().slice(0, 10),
-      tiempo:   'Recién creado',
-    }
-    setUsers(prev => [...prev, newUser])
+    setUsers(prev => [...prev, toUser(created)])
   }
 
   const filtered = users.filter(user => {
