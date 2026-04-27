@@ -21,3 +21,8 @@ export async function createUser(payload: CreateUserPayload): Promise<UserRespon
   const res = await api.post<UserResponse>('/users', payload)
   return res.data
 }
+
+export async function getUsers(): Promise<UserResponse[]> {
+  const res = await api.get<UserResponse[]>('/users')
+  return res.data
+}

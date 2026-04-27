@@ -6,10 +6,10 @@ import { fn } from 'storybook/test'
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
 const mockUsers: User[] = [
-  { id: 'USR-001', nombre: 'Alejandra', apellido: "Mosri",  correo: 'ale.m@hospital.mx',      rol: 'D.G.', estatus: 'Activo', fecha: '04/03/2026', tiempo: '2h 15m' },
-  { id: 'USR-002', nombre: 'Andres', apellido:"Torres",    correo: 'andy.t@salud.mx',         rol: 'D.F.', estatus: 'Activo', fecha: '04/03/2026', tiempo: '2h 15m' },
-  { id: 'USR-003', nombre: 'Olga', apellido: "Escamilla",   correo: 'o.escamilla@instituto.mx',rol: 'D.M.', estatus: 'Inactivo', fecha: '04/03/2026', tiempo: '2h 15m' },
-  { id: 'USR-004', nombre: 'Cesar', apellido: "Betancourt",  correo: 'r.fuentes@salud.mx',      rol: 'D.F.', estatus: 'Inactivo', fecha: '04/03/2026', tiempo: '2h 15m' },
+  { id: 'USR-001', nombre: 'Alejandra', apellido: "Mosri",  correo: 'ale.m@hospital.mx',      rol: 'D.G.', estatus: 'Activo'   },
+  { id: 'USR-002', nombre: 'Andres', apellido:"Torres",    correo: 'andy.t@salud.mx',         rol: 'D.F.', estatus: 'Activo'   },
+  { id: 'USR-003', nombre: 'Olga', apellido: "Escamilla",   correo: 'o.escamilla@instituto.mx',rol: 'D.M.', estatus: 'Inactivo' },
+  { id: 'USR-004', nombre: 'Cesar', apellido: "Betancourt",  correo: 'r.fuentes@salud.mx',      rol: 'D.F.', estatus: 'Inactivo' },
 ]
 
 // ─── Meta ─────────────────────────────────────────────────────────────────────

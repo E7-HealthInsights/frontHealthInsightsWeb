@@ -23,3 +23,9 @@ export function getDefaultRouteForRole(role: string | undefined | null): string 
   if (!role) return FALLBACK_ROUTE
   return ROLE_DEFAULT_ROUTE[role] ?? FALLBACK_ROUTE
 }
+
+const ADMIN_ROLES = new Set(['Admin', 'Administrador', 'ADMIN'])
+
+export function isAdminRole(role: string | undefined | null): boolean {
+  return !!role && ADMIN_ROLES.has(role)
+}
