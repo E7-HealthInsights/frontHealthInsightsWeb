@@ -13,29 +13,14 @@ interface UsersTableProps {
   onDelete?:   (user: User) => void
 }
 
-// Contraseña siempre como puntos — nunca se muestra el valor real
-const PasswordCell = () => (
-  <span className="tracking-widest text-[var(--color-hi-text-hint)] select-none">
-    ••••••••
-  </span>
-)
-
-
 // ─── Columnas ─────────────────────────────────────────────────────────────────
 
 const buildColumns = (
   onEdit?:   (u: User) => void,
   onDelete?: (u: User) => void,
 ): Column<User>[] => [
-  { key: 'id',     header: 'ID',     width: 'w-24' },
   { key: 'nombreCompleto', header: 'Nombre Completo', render: row => `${row.nombre} ${row.apellido}` },
   { key: 'correo', header: 'Correo' },
-  {
-    key:    'password',
-    header: 'Password',
-    width:  'w-28',
-    render: () => <PasswordCell />,
-  },
   {
     key: 'rol',
     header: 'Rol',
