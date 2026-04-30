@@ -6,6 +6,9 @@ import LoginPage       from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import AdminPage     from './pages/AdminPage'
 import UsersPage     from './pages/UsersPage'
+import GeneralPage from './pages/dashboards/GeneralPage'
+import FinanzasPage from './pages/dashboards/FinanzasPage'
+import MarketingPage from './pages/dashboards/MarketingPage'
 
 export default function App() {
   return (
@@ -22,9 +25,9 @@ export default function App() {
             <Route path="/datos"        element={<div>Datos</div>} />
 
             {/* Directores */}
-            <Route path="/director/general"   element={<DashboardPage />} />
-            <Route path="/director/finanzas"  element={<DashboardPage />} />
-            <Route path="/director/marketing" element={<DashboardPage />} />
+            <Route path="/director/general"   element={<GeneralPage />} />
+            <Route path="/director/finanzas"  element={<FinanzasPage />} />
+            <Route path="/director/marketing" element={<MarketingPage />} />
 
             {/* Admin */}
             <Route element={<AdminRoute />}>
