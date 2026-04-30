@@ -1,14 +1,30 @@
 import { useEffect, useRef } from 'react'
-import { Navigate, Outlet, useNavigate } from 'react-router-dom'
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../context/AuthContext'
 import { logout } from '../../../services/authService'
+import { getDefaultRouteForRole } from '../../../utils/roleRoutes'
 
 const INACTIVITY_LIMIT = 12 * 60 * 60 * 1000 // 12 horas en ms
 const EVENTS = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll']
 
+const ROUTE_ROLES: Record<string, string[]> = {
+  '/admin':              ['ADMIN', 'Admin', 'Administrador'],
+  '/director/finanzas':  ['DIRECTOR_FINANZAS', 'D.F.'],
+  '/director/general':   ['DIRECTOR_GENERAL',  'D.G.'],
+  '/director/marketing': ['DIRECTOR_MERCADOTECNIA', 'D.M.'],
+}
+
+function canAccessRoute(pathname: string, role: string | undefined): boolean {
+  // Si la ruta no tiene restricción, cualquier usuario loggeado puede entrar
+  const allowedRoles = ROUTE_ROLES[pathname]
+  if (!allowedRoles) return true
+  return !!role && allowedRoles.includes(role)
+}
+
 export default function PrivateRoute() {
   const { user, setUser, loading } = useAuth()
   const navigate          = useNavigate()
+  const location = useLocation()
   const timerRef          = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -49,6 +65,11 @@ export default function PrivateRoute() {
   )
 
   if (!user) return <Navigate to="/login" replace />
+
+  if (!canAccessRoute(location.pathname, user.role)) {
+    const defaultRoute = getDefaultRouteForRole(user.role)
+    return <Navigate to={defaultRoute} replace />
+  }
 
   return <Outlet />
 }
