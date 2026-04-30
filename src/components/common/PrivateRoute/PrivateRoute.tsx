@@ -9,9 +9,7 @@ const EVENTS = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll']
 
 const ROUTE_ROLES: Record<string, string[]> = {
   '/admin':              ['ADMIN', 'Admin', 'Administrador'],
-  '/director/finanzas':  ['DIRECTOR_FINANZAS', 'D.F.'],
-  '/director/general':   ['DIRECTOR_GENERAL',  'D.G.'],
-  '/director/marketing': ['DIRECTOR_MERCADOTECNIA', 'D.M.'],
+  '/':  ['DIRECTOR_FINANZAS', 'D.F.','DIRECTOR_GENERAL',  'D.G.','DIRECTOR_MERCADOTECNIA', 'D.M.']
 }
 
 function canAccessRoute(pathname: string, role: string | undefined): boolean {
@@ -51,7 +49,7 @@ export default function PrivateRoute() {
       if (timerRef.current) clearTimeout(timerRef.current)
       EVENTS.forEach(event => window.removeEventListener(event, resetTimer))
     }
-  }, [user, navigate, setUser])
+  }, [user, navigate])
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center
