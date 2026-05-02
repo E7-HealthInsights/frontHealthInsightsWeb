@@ -12,14 +12,14 @@ export default function LoginPage() {
   const location = useLocation()
   const sessionMessage = (location.state as { message?: string })?.message ?? ''
   const navigate = useNavigate()
-  const { user, setUser, loading: authLoading } = useAuth()
+  const { user: authUser, setUser, loading: authLoading } = useAuth()
 
   // Si el usuario ya está autenticado (p.ej. refresh en /login), redirigir según rol.
   useEffect(() => {
-    if (!authLoading && user) {
-      navigate(getDefaultRouteForRole(user.role), { replace: true })
+    if (!authLoading && authUser) {
+      navigate('/', { replace: true })
     }
-  }, [authLoading, user, navigate])
+  }, [authLoading, authUser, navigate])
 
 const handleSubmit = async (email: string, password: string) => {
   console.log('[LoginPage] handleSubmit ▶️', email)
@@ -29,9 +29,9 @@ const handleSubmit = async (email: string, password: string) => {
     const user = await login(email, password)
     console.log('[LoginPage] login OK, user:', user)
     setUser(user)
-    const route = getDefaultRouteForRole(user.role)
-    console.log('[LoginPage] navigate →', route, '(role:', user.role, ')')
-    navigate(route, { replace: true })
+    // const route = getDefaultRouteForRole(user.role)
+    // console.log('[LoginPage] navigate →', route, '(role:', user.role, ')')
+    navigate('/', { replace: true })
   } catch (err: unknown) {
     console.error('[LoginPage] handleSubmit ❌', err)
     if (err instanceof Error) {

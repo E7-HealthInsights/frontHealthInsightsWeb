@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import axios from 'axios'
 import { auth } from '../lib/firebase'
@@ -17,8 +17,13 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)  //true al inicio, se vuelve false tras intentar cargar sesión
+  const [user,    setUserState] = useState<UserProfile | null>(null)
+  const [loading, setLoading]   = useState(true)
+  const isFetching = useRef(false)   
+
+  const setUser = useCallback((u: UserProfile | null) => {
+    setUserState(u)
+  }, []) 
 
   // Al montar el provider, se suscribe a cambios de autenticación en Firebase
   useEffect(() => {

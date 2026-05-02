@@ -22,9 +22,9 @@ export default function App() {
             <Route path="/datos"        element={<div>Datos</div>} />
 
             {/* Directores */}
-            <Route path="/director/general"   element={<DashboardPage />} />
-            <Route path="/director/finanzas"  element={<DashboardPage />} />
-            <Route path="/director/marketing" element={<DashboardPage />} />
+            {/* <Route path="/director/general"   element={<GeneralPage />} />
+            <Route path="/director/finanzas"  element={<FinanzasPage />} />
+            <Route path="/director/marketing" element={<MarketingPage />} /> */}
 
             {/* Admin */}
             <Route element={<AdminRoute />}>
