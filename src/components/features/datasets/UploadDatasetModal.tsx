@@ -3,6 +3,7 @@ import Modal from '../../common/Modal'
 import Button from '../..//common/Button'
 import InputField from '../..//common/InputField'
 import Dropdown from '../..//common/Dropdown'
+import type { UploadDatasetPayload } from '../../../services/datasetService'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -27,11 +28,8 @@ interface DatasetMetadata {
 interface UploadDatasetModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (payload: {
-    file: File
-    metadata: DatasetMetadata
-    columnMappings: ColumnMapping[]
-  }) => void
+  onConfirm: (payload: UploadDatasetPayload) => Promise<void>
+  uploadError?: string
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -261,6 +259,7 @@ export default function UploadDatasetModal({
   isOpen,
   onClose,
   onConfirm,
+  uploadError = '',
 }: UploadDatasetModalProps) {
   const [step, setStep] = useState<'upload' | 'configure'>('upload')
   const [metadata, setMetadata] = useState<DatasetMetadata>(EMPTY_METADATA)
@@ -325,7 +324,18 @@ export default function UploadDatasetModal({
     if (!uploadedFile) return
     setConfirming(true)
     try {
-      await onConfirm({ file: uploadedFile, metadata, columnMappings })
+      await onConfirm({
+        file:           uploadedFile,
+        nombre:         metadata.title,
+        descripcion:    metadata.description,
+        fuente:         metadata.source,
+        columnMappings: columnMappings.map(m => ({
+          originalName: m.originalName,
+          displayName:  m.displayName,
+          sqlType:      m.sqlType,
+          unidad:       undefined,
+        })),
+      })
       handleClose()
     } finally {
       setConfirming(false)
@@ -373,6 +383,7 @@ export default function UploadDatasetModal({
           columnMappings={columnMappings}
           aiLoading={aiLoading}
           aiError={aiError}
+          uploadError={uploadError}
           confirming={confirming}
           onUpdateMapping={updateMapping}
           onBack={handleBack}
@@ -390,6 +401,7 @@ function ConfigureStep({
   columnMappings,
   aiLoading,
   aiError,
+  uploadError,
   confirming,
   onUpdateMapping,
   onBack,
@@ -399,6 +411,7 @@ function ConfigureStep({
   columnMappings: ColumnMapping[]
   aiLoading: boolean
   aiError: string
+  uploadError: string
   confirming: boolean
   onUpdateMapping: (index: number, field: 'displayName' | 'sqlType', value: string) => void
   onBack: () => void
@@ -590,6 +603,22 @@ function ConfigureStep({
           ))}
         </div>
       </div>
+
+      {/* ── Error de upload ── */}
+      {uploadError && (
+        <div className="flex items-start gap-2 px-3 py-2.5 rounded-[var(--radius-sm)]
+                        bg-red-50 border border-red-200">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+            stroke="var(--color-hi-danger)" strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round"
+            aria-hidden="true" className="shrink-0 mt-0.5">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <p className="text-xs text-red-700 leading-relaxed">{uploadError}</p>
+        </div>
+      )}
 
       {/* ── Actions ── */}
       <div className="flex justify-between items-center pt-2 border-t border-[var(--color-hi-border)]">
