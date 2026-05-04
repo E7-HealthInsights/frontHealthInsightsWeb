@@ -3,9 +3,10 @@ import { AuthProvider } from './context/AuthContext'
 import PrivateRoute    from './components/common/PrivateRoute/PrivateRoute'
 import AdminRoute      from './components/common/AdminRoute/AdminRoute'
 import LoginPage       from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import AdminPage     from './pages/AdminPage'
-import UsersPage     from './pages/UsersPage'
+import DashboardPage   from './pages/DashboardPage'
+import AdminPage       from './pages/AdminPage'
+import UsersPage       from './pages/UsersPage'
+import DatasetsAdminPage from './pages/DatasetsAdminPage'
 
 export default function App() {
   return (
@@ -21,16 +22,11 @@ export default function App() {
             <Route path="/usuarios"     element={<div>Usuarios</div>} />
             <Route path="/datos"        element={<div>Datos</div>} />
 
-            {/* Directores */}
-            {/* <Route path="/director/general"   element={<GeneralPage />} />
-            <Route path="/director/finanzas"  element={<FinanzasPage />} />
-            <Route path="/director/marketing" element={<MarketingPage />} /> */}
-
             {/* Admin */}
             <Route element={<AdminRoute />}>
               <Route path="/admin"          element={<AdminPage />} />
               <Route path="/admin/usuarios" element={<UsersPage />} />
-              <Route path="/admin/datos"    element={<div>Datos (Admin)</div>} />
+              <Route path="/admin/datos"    element={<DatasetsAdminPage />} />
             </Route>
           </Route>
 
