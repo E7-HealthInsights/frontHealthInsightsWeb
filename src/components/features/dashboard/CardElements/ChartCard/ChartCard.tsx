@@ -35,6 +35,8 @@ import {
     height?:     number            // altura del chart, default 220
     actions?:    CardAction[]
     className?:  string
+    xAxisLabel?: string   
+    yAxisLabel?: string    
   }
   
   
@@ -71,17 +73,31 @@ import {
     )
   }
   
+  const AXIS_LABEL_STYLE = { fontSize: 11, fill: 'var(--color-hi-text-sub)' }
+
   
-  
-  function BarChartView({ data, series, xKey, height }: {
-    data: ChartDataPoint[]; series: ChartSeries[]; xKey: string; height: number
+  function BarChartView({ data, series, xKey, height, xAxisLabel, yAxisLabel }: {
+    data: ChartDataPoint[]; series: ChartSeries[]; xKey: string; height: number; xAxisLabel?: string; yAxisLabel?: string
   }) {
     return (
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+        <BarChart data={data} margin={{ top: 4, right: 8, left: yAxisLabel ? 16 : -16, bottom: xAxisLabel ? 28 : 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hi-border)" vertical={false} />
-          <XAxis dataKey={xKey} tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }} axisLine={false} tickLine={false} />
+          <XAxis
+          dataKey={xKey}
+          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+          axisLine={false} tickLine={false}
+          label={xAxisLabel
+            ? { value: xAxisLabel, position: 'insideBottom', offset: -12, style: AXIS_LABEL_STYLE }
+            : undefined}
+        />
+        <YAxis
+          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+          axisLine={false} tickLine={false}
+          label={yAxisLabel
+            ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 10, style: AXIS_LABEL_STYLE }
+            : undefined}
+        />
           <Tooltip content={<CustomTooltip />} />
           {series.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
           {series.map((s, i) => (
@@ -93,15 +109,28 @@ import {
     )
   }
   
-  function LineChartView({ data, series, xKey, height }: {
-    data: ChartDataPoint[]; series: ChartSeries[]; xKey: string; height: number
+  function LineChartView({ data, series, xKey, height, xAxisLabel, yAxisLabel }: {
+    data: ChartDataPoint[]; series: ChartSeries[]; xKey: string; height: number; xAxisLabel?: string; yAxisLabel?: string
   }) {
     return (
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={data} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+        <LineChart data={data} margin={{ top: 4, right: 8, left: yAxisLabel ? 16 : -16, bottom: xAxisLabel ? 28 : 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hi-border)" vertical={false} />
-          <XAxis dataKey={xKey} tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }} axisLine={false} tickLine={false} />
-          <YAxis tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }} axisLine={false} tickLine={false} />
+          <XAxis
+          dataKey={xKey}
+          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+          axisLine={false} tickLine={false}
+          label={xAxisLabel
+            ? { value: xAxisLabel, position: 'insideBottom', offset: -12, style: AXIS_LABEL_STYLE }
+            : undefined}
+        />
+        <YAxis
+          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+          axisLine={false} tickLine={false}
+          label={yAxisLabel
+            ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 10, style: AXIS_LABEL_STYLE }
+            : undefined}
+        />
           <Tooltip content={<CustomTooltip />} />
           {series.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
           {series.map((s, i) => (
@@ -147,7 +176,7 @@ import {
           <Pie
             data={data}
             dataKey={valueKey}
-            nameKey="name"
+            nameKey="label"
             cx="50%"
             cy="50%"
             outerRadius={height / 2 - 20}
@@ -173,14 +202,16 @@ import {
     data,
     series,
     xKey,
+    xAxisLabel,
+    yAxisLabel,
     height = 220,
     actions = [],
     className = '',
   }: ChartCardProps) {
     const renderChart = () => {
       switch (tipo) {
-        case 'bar':  return <BarChartView  data={data} series={series} xKey={xKey} height={height} />
-        case 'line': return <LineChartView data={data} series={series} xKey={xKey} height={height} />
+        case 'bar':  return <BarChartView  data={data} series={series} xKey={xKey} xAxisLabel={xAxisLabel} yAxisLabel={yAxisLabel} height={height} />
+        case 'line': return <LineChartView data={data} series={series} xKey={xKey} xAxisLabel={xAxisLabel} yAxisLabel={yAxisLabel} height={height} />
         case 'pie':  return <PieChartView  data={data} series={series} height={height} />
         default:     return (
           <div className="flex items-center justify-center h-32
