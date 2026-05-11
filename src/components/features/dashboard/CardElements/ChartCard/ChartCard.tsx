@@ -183,7 +183,10 @@ import {
           <YAxis
             width={Y_AXIS_WIDTH}
             tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+            scale="log"
+            domain={['auto', 'auto']}
             axisLine={false} tickLine={false}
+            tickCount={8}
             label={yAxisLabel
               ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 4, style: AXIS_LABEL_STYLE }
               : undefined}
@@ -244,6 +247,7 @@ import {
             nameKey="label"
             cx="50%"
             cy="50%"
+            innerRadius={height / 2 -60}
             outerRadius={height / 2 - 20}
             labelLine={false}
             label={renderPieLabel}

@@ -73,8 +73,6 @@ export const isErrorData = (d: WidgetData): d is ErrorWidgetData =>
   'error' in d
 
 
-
-
 export async function getMyWidgets(): Promise<WidgetDTO[]> {
   const res = await api.get<WidgetDTO[]>('/widgets')
   return res.data.sort((a, b) => a.orden - b.orden)
