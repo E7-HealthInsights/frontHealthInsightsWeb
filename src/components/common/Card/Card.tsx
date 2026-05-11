@@ -47,24 +47,24 @@ export default function Card({
     >
       
       {hasHeader && (
-        <div className="flex items-start justify-between mb-4">
-          
-          <div>
+        <div className="flex items-start justify-between gap-3 mb-4">
+
+          <div className="min-w-0 flex-1">
             {title && (
-              <h3 className="text-sm font-semibold text-[var(--color-hi-text-main)]">
+              <h3 className="text-sm font-semibold text-[var(--color-hi-text-main)] break-words">
                 {title}
               </h3>
             )}
             {subtitle && (
-              <p className="mt-0.5 text-xs text-[var(--color-hi-text-sub)]">
+              <p className="mt-0.5 text-xs text-[var(--color-hi-text-sub)] break-words">
                 {subtitle}
               </p>
             )}
           </div>
 
-          
+
           {actions.length > 0 && (
-            <div className="relative" ref={menuRef}>
+            <div className="relative flex-shrink-0" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen(prev => !prev)}
                 aria-label="Opciones"
