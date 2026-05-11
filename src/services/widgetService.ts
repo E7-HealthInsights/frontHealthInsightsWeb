@@ -15,11 +15,16 @@ export interface ErrorWidgetData {
   error: string
 }
 
-export type WidgetData = ChartWidgetData | StatWidgetData | ErrorWidgetData
+export interface MultiSeriesWidgetData {
+  seriesKeys: string[]
+  data:       Record<string, string | number>[]  
+}
+
+export type WidgetData = ChartWidgetData | StatWidgetData | ErrorWidgetData | MultiSeriesWidgetData
 
 // Tipos d widgerts
 
-export type WidgetTipo = 'STAT' | 'LINE' | 'BAR' | 'PIE'
+export type WidgetTipo = 'STAT' | 'LINE' | 'BAR' | 'PIE' | 'MULTISERIES'
 
 export interface WidgetDTO {
   id:     string
@@ -44,7 +49,8 @@ export const isStatData = (d: WidgetData): d is StatWidgetData =>
 export const isErrorData = (d: WidgetData): d is ErrorWidgetData =>
   'error' in d
 
-
+export const isMultiSeriesData = (d: WidgetData): d is MultiSeriesWidgetData =>
+  'seriesKeys' in d && 'data' in d
 
 
 export async function getMyWidgets(): Promise<WidgetDTO[]> {

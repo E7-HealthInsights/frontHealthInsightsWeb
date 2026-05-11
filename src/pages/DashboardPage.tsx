@@ -10,7 +10,7 @@ import ChartCard            from '../components/features/dashboard/CardElements/
 import FAB                  from '../components/features/dashboard/FAB/FAB'
 import GenerateElementModal from '../components/features/dashboard/GenerateElementModal/GenerateElementModal'
 import type { ElementType, GeneratePayload } from '../types/Widget'
-import { getMyWidgets, isChartData, isErrorData, isStatData, type ChartWidgetData, type StatWidgetData, type WidgetDTO } from '../services/widgetService'
+import { getMyWidgets, isChartData, isErrorData, isMultiSeriesData, isStatData, type ChartWidgetData, type StatWidgetData, type WidgetDTO } from '../services/widgetService'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 const NAV_LINKS = [
@@ -89,6 +89,28 @@ function WidgetRenderer({
           dataKey: 'value',
           name:    widget.seriesName ?? widget.titulo,
         }]}
+        actions={actions}
+      />
+    )
+  }
+
+  if (widget.tipo === 'MULTISERIES' && isMultiSeriesData(widget.data)) {
+    const multiData = widget.data
+  
+    return (
+      <ChartCard
+        title={widget.titulo}
+        subtitle={widget.subtitulo}
+        tipo="line"                        // siempre línea
+        data={multiData.data}    
+        height={280}          
+        xKey="label"
+        xAxisLabel={widget.xAxisLabel}
+        yAxisLabel={widget.yAxisLabel}
+        series={multiData.seriesKeys.map((key, i) => ({
+          dataKey: key,
+          name:    key,
+        }))}
         actions={actions}
       />
     )
