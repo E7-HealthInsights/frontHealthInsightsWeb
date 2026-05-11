@@ -76,30 +76,70 @@ import {
   const AXIS_LABEL_STYLE = { fontSize: 11, fill: 'var(--color-hi-text-sub)' }
 
   
+  // Reservas fijas para que NUNCA se solapen ejes, ticks rotados, label de eje
+  // y leyenda. Recharts respeta estas dimensiones al calcular el área del plot.
+  const X_AXIS_HEIGHT = 72         // altura para ticks rotados
+  const Y_AXIS_WIDTH  = 56         // ancho para ticks numéricos
+  const X_LABEL_OFFSET = 24        // espacio extra abajo cuando hay xAxisLabel
+  const LEGEND_HEIGHT_PER_ROW = 22 // altura aproximada por fila de leyenda
+  const LEGEND_PADDING_TOP = 4
+  // Estimar nº de filas que ocupa la leyenda según promedio chars/serie.
+  const estimateLegendRows = (series: ChartSeries[]) => {
+    if (series.length <= 1) return 0
+    const avg = series.reduce((s, x) => s + x.name.length, 0) / series.length
+    if (avg > 22) return 3
+    if (avg > 12) return 2
+    return 1
+  }
+
   function BarChartView({ data, series, xKey, height, xAxisLabel, yAxisLabel }: {
     data: ChartDataPoint[]; series: ChartSeries[]; xKey: string; height: number; xAxisLabel?: string; yAxisLabel?: string
   }) {
+    const legendRows   = estimateLegendRows(series)
+    const legendHeight = legendRows * LEGEND_HEIGHT_PER_ROW + LEGEND_PADDING_TOP
     return (
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} margin={{ top: 4, right: 8, left: yAxisLabel ? 16 : -16, bottom: xAxisLabel ? 28 : 4 }}>
+        <BarChart
+          data={data}
+          margin={{
+            top:    legendRows > 0 ? legendHeight + 8 : 16,
+            right:  16,
+            left:   yAxisLabel ? 16 : 0,
+            bottom: xAxisLabel ? X_LABEL_OFFSET : 8,
+          }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hi-border)" vertical={false} />
           <XAxis
-          dataKey={xKey}
-          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-          axisLine={false} tickLine={false}
-          label={xAxisLabel
-            ? { value: xAxisLabel, position: 'insideBottom', offset: -12, style: AXIS_LABEL_STYLE }
-            : undefined}
-        />
-        <YAxis
-          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-          axisLine={false} tickLine={false}
-          label={yAxisLabel
-            ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 10, style: AXIS_LABEL_STYLE }
-            : undefined}
-        />
+            dataKey={xKey}
+            tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+            tickMargin={10}
+            interval={0}
+            angle={-35}
+            textAnchor="end"
+            height={X_AXIS_HEIGHT}
+            axisLine={false} tickLine={false}
+            label={xAxisLabel
+              ? { value: xAxisLabel, position: 'insideBottom', offset: -8, style: AXIS_LABEL_STYLE }
+              : undefined}
+          />
+          <YAxis
+            width={Y_AXIS_WIDTH}
+            tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+            axisLine={false} tickLine={false}
+            label={yAxisLabel
+              ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 4, style: AXIS_LABEL_STYLE }
+              : undefined}
+          />
           <Tooltip content={<CustomTooltip />} />
-          {series.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
+          {legendRows > 0 && (
+            <Legend
+              verticalAlign="top"
+              align="center"
+              height={legendHeight}
+              wrapperStyle={{ fontSize: 11, paddingBottom: 4, lineHeight: '20px' }}
+              iconSize={10}
+            />
+          )}
           {series.map((s, i) => (
             <Bar key={s.dataKey} dataKey={s.dataKey} name={s.name}
               fill={color(s, i)} radius={[4, 4, 0, 0]} />
@@ -108,31 +148,56 @@ import {
       </ResponsiveContainer>
     )
   }
-  
+
   function LineChartView({ data, series, xKey, height, xAxisLabel, yAxisLabel }: {
     data: ChartDataPoint[]; series: ChartSeries[]; xKey: string; height: number; xAxisLabel?: string; yAxisLabel?: string
   }) {
+    const legendRows   = estimateLegendRows(series)
+    const legendHeight = legendRows * LEGEND_HEIGHT_PER_ROW + LEGEND_PADDING_TOP
     return (
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={data} margin={{ top: 4, right: 8, left: yAxisLabel ? 16 : -16, bottom: xAxisLabel ? 28 : 4 }}>
+        <LineChart
+          data={data}
+          margin={{
+            top:    legendRows > 0 ? legendHeight + 8 : 16,
+            right:  16,
+            left:   yAxisLabel ? 16 : 0,
+            bottom: xAxisLabel ? X_LABEL_OFFSET : 8,
+          }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hi-border)" vertical={false} />
           <XAxis
-          dataKey={xKey}
-          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-          axisLine={false} tickLine={false}
-          label={xAxisLabel
-            ? { value: xAxisLabel, position: 'insideBottom', offset: -12, style: AXIS_LABEL_STYLE }
-            : undefined}
-        />
-        <YAxis
-          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-          axisLine={false} tickLine={false}
-          label={yAxisLabel
-            ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 10, style: AXIS_LABEL_STYLE }
-            : undefined}
-        />
+            dataKey={xKey}
+            tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+            tickMargin={10}
+            interval="preserveStartEnd"
+            minTickGap={24}
+            angle={-35}
+            textAnchor="end"
+            height={X_AXIS_HEIGHT}
+            axisLine={false} tickLine={false}
+            label={xAxisLabel
+              ? { value: xAxisLabel, position: 'insideBottom', offset: -8, style: AXIS_LABEL_STYLE }
+              : undefined}
+          />
+          <YAxis
+            width={Y_AXIS_WIDTH}
+            tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+            axisLine={false} tickLine={false}
+            label={yAxisLabel
+              ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 4, style: AXIS_LABEL_STYLE }
+              : undefined}
+          />
           <Tooltip content={<CustomTooltip />} />
-          {series.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
+          {legendRows > 0 && (
+            <Legend
+              verticalAlign="top"
+              align="center"
+              height={legendHeight}
+              wrapperStyle={{ fontSize: 11, paddingBottom: 4, lineHeight: '20px' }}
+              iconSize={10}
+            />
+          )}
           {series.map((s, i) => (
             <Line key={s.dataKey} dataKey={s.dataKey} name={s.name}
               stroke={color(s, i)} strokeWidth={2}
