@@ -93,7 +93,9 @@ import {
         />
         <YAxis
           tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+          domain={['auto', 'auto']}
           axisLine={false} tickLine={false}
+          tickCount={8}
           label={yAxisLabel
             ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 10, style: AXIS_LABEL_STYLE }
             : undefined}
@@ -114,7 +116,7 @@ import {
   }) {
     return (
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={data} margin={{ top: 4, right: 8, left: yAxisLabel ? 16 : -16, bottom: xAxisLabel ? 28 : 4 }}>
+        <LineChart data={data} margin={{ top: 16, right: 8, left: yAxisLabel ? 16 : -16, bottom: xAxisLabel ? 28 : 4 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hi-border)" vertical={false} />
           <XAxis
           dataKey={xKey}
@@ -126,13 +128,16 @@ import {
         />
         <YAxis
           tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+          scale="log"
+          domain={['auto', 'auto']}
           axisLine={false} tickLine={false}
+          tickCount={8}
           label={yAxisLabel
             ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 10, style: AXIS_LABEL_STYLE }
             : undefined}
         />
           <Tooltip content={<CustomTooltip />} />
-          {series.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
+          {series.length > 1 && <Legend verticalAlign="top" align="center" wrapperStyle={{ fontSize: 11, paddingBottom: 4 }} />}
           {series.map((s, i) => (
             <Line key={s.dataKey} dataKey={s.dataKey} name={s.name}
               stroke={color(s, i)} strokeWidth={2}
@@ -179,6 +184,7 @@ import {
             nameKey="label"
             cx="50%"
             cy="50%"
+            innerRadius={height / 2 -60}
             outerRadius={height / 2 - 20}
             labelLine={false}
             label={renderPieLabel}
