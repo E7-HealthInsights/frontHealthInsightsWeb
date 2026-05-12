@@ -16,6 +16,7 @@ interface ColumnMapping {
   originalName: string
   displayName: string
   sqlType: string
+  unidad: string
   aiSuggested: boolean
 }
 
@@ -41,6 +42,7 @@ const SQL_TYPE_OPTIONS = [
   { value: 'BIGINT',       label: 'BIGINT — Número entero grande' },
   { value: 'DECIMAL(10,2)',label: 'DECIMAL(10,2) — Número decimal' },
   { value: 'FLOAT',        label: 'FLOAT — Número flotante' },
+  { value: 'DOUBLE',       label: 'DOUBLE — Doble precisión' },
   { value: 'BOOLEAN',      label: 'BOOLEAN — Verdadero/Falso' },
   { value: 'DATE',         label: 'DATE — Fecha' },
   { value: 'DATETIME',     label: 'DATETIME — Fecha y hora' },
@@ -85,17 +87,21 @@ function parseCSV(text: string, maxRows = 5): ParsedCSV {
 async function fetchAISuggestions(
   headers: string[],
   sampleRows: string[][]
-): Promise<Record<string, string>> {
+): Promise<Record<string, { sqlType: string; unidad: string | null }>> {
   const sampleText = [headers.join(','), ...sampleRows.map(r => r.join(','))].join('\n')
 
-  const prompt = `Eres un experto en bases de datos SQL. Analiza este fragmento de CSV y sugiere el tipo de dato SQL más adecuado para cada columna.
+  const prompt = `Eres un experto en bases de datos SQL. Analiza este fragmento de CSV y para cada columna sugiere:
+1. El tipo de dato SQL mas adecuado
+2. La unidad de medida si aplica (solo para columnas numericas con unidad clara)
 
 CSV:
 ${sampleText}
 
-Responde ÚNICAMENTE con un objeto JSON válido donde la clave es el nombre exacto de la columna y el valor es uno de estos tipos SQL exactamente como aparecen: VARCHAR(255), TEXT, INT, BIGINT, DECIMAL(10,2), FLOAT, BOOLEAN, DATE, DATETIME, TIMESTAMP, JSON
+Responde UNICAMENTE con un objeto JSON valido donde la clave es el nombre exacto de la columna y el valor es un objeto con:
+- "sqlType": uno de estos exactamente: VARCHAR(255), TEXT, INT, BIGINT, DECIMAL(10,2), FLOAT, DOUBLE, BOOLEAN, DATE, DATETIME, TIMESTAMP, JSON
+- "unidad": string con la unidad (ej: "%", "años", "MXN", "millones de personas") o null si no aplica
 
-No incluyas ningún texto extra, solo el JSON.`
+No incluyas ningun texto extra, solo el JSON.`
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -223,7 +229,6 @@ function UploadStep({
             <polyline points="17 8 12 3 7 8" />
             <line x1="12" y1="3" x2="12" y2="15" />
           </svg>
-
           <div className="text-center">
             <p className="text-sm font-medium">
               {canUpload ? 'Arrastra tu archivo aquí' : 'Completa el título primero'}
@@ -232,14 +237,12 @@ function UploadStep({
               <p className="text-xs opacity-70 mt-0.5">o haz click para seleccionar</p>
             )}
           </div>
-
           {canUpload && (
             <span className="text-xs text-[var(--color-hi-text-hint)]">
               Formatos aceptados: CSV (Máx. 50MB)
             </span>
           )}
         </div>
-
         <input
           ref={inputRef}
           type="file"
@@ -276,7 +279,6 @@ export default function UploadDatasetModal({
 
   const handleFileSelected = useCallback(async (file: File) => {
     setUploadedFile(file)
-
     const text = await file.text()
     const parsed = parseCSV(text, 5)
     setParsedCSV(parsed)
@@ -285,6 +287,7 @@ export default function UploadDatasetModal({
       originalName: h,
       displayName: h,
       sqlType: 'VARCHAR(255)',
+      unidad: '',
       aiSuggested: false,
     }))
     setColumnMappings(initialMappings)
@@ -296,21 +299,30 @@ export default function UploadDatasetModal({
       try {
         const suggestions = await fetchAISuggestions(parsed.headers, parsed.rows)
         setColumnMappings(prev =>
-          prev.map(m => ({
+          prev.map(m => {
+            const s = suggestions[m.originalName]
+            if (!s) return m
+            return {
             ...m,
-            sqlType: suggestions[m.originalName] ?? m.sqlType,
-            aiSuggested: !!suggestions[m.originalName],
-          }))
+              sqlType:     s.sqlType ?? m.sqlType,
+              unidad:      s.unidad  ?? '',
+              aiSuggested: true,
+            }
+          })
         )
       } catch {
-        setAiError('No se pudieron obtener sugerencias automáticas de tipos SQL.')
+        setAiError('No se pudieron obtener sugerencias automaticas de tipos SQL.')
       } finally {
         setAiLoading(false)
       }
     }
   }, [])
 
-  const updateMapping = (index: number, field: 'displayName' | 'sqlType', value: string) => {
+  const updateMapping = (
+    index: number,
+    field: 'displayName' | 'sqlType' | 'unidad',
+    value: string
+  ) => {
     setColumnMappings(prev =>
       prev.map((m, i) =>
         i === index
@@ -325,15 +337,15 @@ export default function UploadDatasetModal({
     setConfirming(true)
     try {
       await onConfirm({
-        file:           uploadedFile,
-        nombre:         metadata.title,
-        descripcion:    metadata.description,
-        fuente:         metadata.source,
+        file:        uploadedFile,
+        nombre:      metadata.title,
+        descripcion: metadata.description,
+        fuente:      metadata.source,
         columnMappings: columnMappings.map(m => ({
           originalName: m.originalName,
           displayName:  m.displayName,
           sqlType:      m.sqlType,
-          unidad:       undefined,
+          unidad:       m.unidad.trim() || undefined,
         })),
       })
       handleClose()
@@ -413,17 +425,16 @@ function ConfigureStep({
   aiError: string
   uploadError: string
   confirming: boolean
-  onUpdateMapping: (index: number, field: 'displayName' | 'sqlType', value: string) => void
+  onUpdateMapping: (index: number, field: 'displayName' | 'sqlType' | 'unidad', value: string) => void
   onBack: () => void
   onConfirm: () => void
 }) {
   return (
     <div className="flex flex-col gap-5">
 
-      {/* ── File uploaded confirmation banner ── */}
+      {/* ── Archivo confirmado ── */}
       <div className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] bg-[var(--color-hi-primary-soft)]">
-        <svg
-          width="16" height="16" viewBox="0 0 24 24" fill="none"
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
           stroke="var(--color-hi-primary)" strokeWidth="2"
           strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
           className="shrink-0"
@@ -435,7 +446,7 @@ function ConfigureStep({
         </span>
       </div>
 
-      {/* ── CSV Preview Table ── */}
+      {/* ── Vista previa CSV ── */}
       <div>
         <p className="text-xs font-semibold text-[var(--color-hi-text-sub)] uppercase tracking-wide mb-2">
           Vista previa del archivo
@@ -476,7 +487,7 @@ function ConfigureStep({
         </div>
       </div>
 
-      {/* ── AI status ── */}
+      {/* ── Estado IA ── */}
       {aiLoading && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-[var(--radius-sm)] border border-[var(--color-hi-border)] bg-[var(--color-hi-bg)]">
           <svg
@@ -488,7 +499,7 @@ function ConfigureStep({
             <path d="M12 2a10 10 0 0 1 10 10" />
           </svg>
           <span className="text-xs text-[var(--color-hi-text-sub)]">
-            Analizando columnas con IA para sugerir tipos SQL…
+            Analizando columnas con IA para sugerir tipos SQL y unidades...
           </span>
         </div>
       )}
@@ -502,27 +513,26 @@ function ConfigureStep({
           <svg
             width="14" height="14" viewBox="0 0 24 24" fill="none"
             stroke="var(--color-hi-primary)" strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-          >
+            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="10" />
             <line x1="12" y1="8" x2="12" y2="12" />
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <span className="text-xs text-[var(--color-hi-text-sub)]">
-            Los tipos SQL fueron sugeridos automáticamente por IA. Puedes ajustarlos antes de confirmar.
+            Los tipos SQL y unidades fueron sugeridos automáticamente por IA. Puedes ajustarlos antes de confirmar.
           </span>
         </div>
       )}
 
-      {/* ── Column Mapping ── */}
+      {/* ── Mapeo de columnas ── */}
       <div>
         <p className="text-sm text-[var(--color-hi-text-sub)] mb-3">
-          Define el nombre de las columnas para el sistema:
+          Define el nombre, tipo y unidad de cada columna:
         </p>
 
         <div className="flex flex-col gap-3">
-          {/* Header row */}
-          <div className="grid grid-cols-[1fr_1fr_1fr] gap-3">
+          {/* Headers — anchos fijos para que nunca se muevan */}
+          <div className="grid gap-3" style={{ gridTemplateColumns: '1fr 1fr 140px 100px' }}>
             <span className="text-xs font-semibold text-[var(--color-hi-text-hint)] uppercase tracking-wide">
               Columna original
             </span>
@@ -535,26 +545,31 @@ function ConfigureStep({
                 <svg
                   aria-label="Cargando sugerencias"
                   className="animate-spin w-3 h-3 text-[var(--color-hi-primary)]"
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-                >
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
                   <path d="M12 2a10 10 0 0 1 10 10" />
                 </svg>
               )}
+            </span>
+            <span className="text-xs font-semibold text-[var(--color-hi-text-hint)] uppercase tracking-wide">
+              Unidad
             </span>
           </div>
 
           {columnMappings.map((mapping, index) => (
             <div
               key={mapping.originalName}
-              className="grid grid-cols-[1fr_1fr_1fr] gap-3 items-start"
+              className="grid gap-3 items-start"
+              style={{ gridTemplateColumns: '1fr 1fr 140px 100px' }}
             >
+              {/* Columna original — ancho fijo */}
               <div className="flex items-center h-[38px] px-3 rounded-[var(--radius-md)] border border-[var(--color-hi-border)] bg-[var(--color-hi-bg)] overflow-hidden">
                 <span className="text-sm text-[var(--color-hi-text-sub)] truncate font-mono">
                   {mapping.originalName}
                 </span>
               </div>
 
+              {/* Nombre amigable */}
               <input
                 type="text"
                 value={mapping.displayName}
@@ -575,7 +590,8 @@ function ConfigureStep({
                 "
               />
 
-              <div className="relative">
+              {/* Tipo SQL — ancho fijo 140px, no empuja otras columnas */}
+              <div className="relative w-[140px]">
                 <Dropdown
                   options={SQL_TYPE_OPTIONS}
                   value={mapping.sqlType}
@@ -592,13 +608,34 @@ function ConfigureStep({
                       bg-[var(--color-hi-primary)]
                       flex items-center justify-center
                       text-white text-[8px] font-bold
-                      select-none
+                      select-none pointer-events-none
                     "
                   >
                     IA
                   </span>
                 )}
               </div>
+
+              {/* Unidad — ancho fijo 100px, opcional */}
+              <input
+                type="text"
+                value={mapping.unidad}
+                onChange={e => onUpdateMapping(index, 'unidad', e.target.value)}
+                placeholder="ej. %"
+                maxLength={50}
+                aria-label={`Unidad para columna ${mapping.originalName}`}
+                className="
+                  h-[38px] w-[100px] rounded-[var(--radius-md)]
+                  border border-[var(--color-hi-border)]
+                  bg-[var(--color-hi-surface)]
+                  px-3 text-sm
+                  text-[var(--color-hi-text-main)]
+                  placeholder:text-[var(--color-hi-text-hint)]
+                  focus:outline-none focus:border-[var(--color-hi-border-focus)]
+                  focus:ring-2 focus:ring-[var(--color-hi-primary)]/20
+                  transition-colors
+                "
+              />
             </div>
           ))}
         </div>
@@ -620,7 +657,7 @@ function ConfigureStep({
         </div>
       )}
 
-      {/* ── Actions ── */}
+      {/* ── Acciones ── */}
       <div className="flex justify-between items-center pt-2 border-t border-[var(--color-hi-border)]">
         <Button variant="secondary" onClick={onBack}>
           ← Volver
