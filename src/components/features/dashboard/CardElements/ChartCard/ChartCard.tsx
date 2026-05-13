@@ -128,7 +128,6 @@ import {
         />
         <YAxis
           tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-          scale="log"
           domain={['auto', 'auto']}
           axisLine={false} tickLine={false}
           tickCount={8}
@@ -141,7 +140,7 @@ import {
           {series.map((s, i) => (
             <Line key={s.dataKey} dataKey={s.dataKey} name={s.name}
               stroke={color(s, i)} strokeWidth={2}
-              dot={{ r: 4, fill: color(s, i) }}
+              dot={{ r: 3, fill: color(s, i) }}
               activeDot={{ r: 6 }} />
           ))}
         </LineChart>
