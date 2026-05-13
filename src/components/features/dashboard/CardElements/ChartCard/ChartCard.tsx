@@ -167,13 +167,18 @@ import {
         >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hi-border)" vertical={false} />
           <XAxis
-          dataKey={xKey}
-          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-          axisLine={false} tickLine={false}
-          label={xAxisLabel
-            ? { value: xAxisLabel, position: 'insideBottom', offset: -12, style: AXIS_LABEL_STYLE }
-            : undefined}
-        />
+            dataKey={xKey}
+            tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+            tickMargin={10}
+            interval={0}
+            angle={-35}
+            textAnchor="end"
+            height={X_AXIS_HEIGHT}    // ← usa la misma constante que Bar
+            axisLine={false} tickLine={false}
+            label={xAxisLabel
+              ? { value: xAxisLabel, position: 'insideBottom', offset: -8, style: AXIS_LABEL_STYLE }
+              : undefined}
+          />
         <YAxis
           tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
           domain={['auto', 'auto']}

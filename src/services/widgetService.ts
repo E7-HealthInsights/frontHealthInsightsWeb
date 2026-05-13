@@ -18,16 +18,15 @@ export interface MultiSeriesPoint {
 
 export interface MultiSeriesWidgetData {
   seriesKeys: string[]
-  data:       Record<string, string | number>[]
+  data:       MultiSeriesPoint[]
 }
 
 export interface HeatmapWidgetData {
   rows: Record<string, string | number>[]
 }
 
-export type WidgetData = ChartWidgetData | StatWidgetData | ErrorWidgetData | MultiSeriesWidgetData | HeatmapWidgetData
-  data:       MultiSeriesPoint[]
-}
+export type WidgetData = ChartWidgetData | StatWidgetData | ErrorWidgetData | MultiSeriesWidgetData | HeatmapWidgetData | TableWidgetData
+
 
 export type TableRow = Record<string, string | number | null>
 
@@ -43,7 +42,7 @@ export interface ErrorWidgetData {
 
 // Tipos d widgets
 
-export type WidgetTipo = 'STAT' | 'LINE' | 'BAR' | 'PIE' | 'MULTISERIES' | 'MULTIBAR' | 'HEATMAP'
+export type WidgetTipo = 'STAT' | 'LINE' | 'BAR' | 'PIE' | 'MULTISERIES' | 'MULTIBAR' | 'HEATMAP' | 'TABLE'
 
 export interface WidgetDTO {
   id:     string
@@ -74,9 +73,6 @@ export const isTableData = (d: WidgetData): d is TableWidgetData =>
 export const isErrorData = (d: WidgetData): d is ErrorWidgetData =>
   'error' in d
 
-export const isMultiSeriesData = (d: WidgetData): d is MultiSeriesWidgetData =>
-  'seriesKeys' in d && 'data' in d
-
 export const isHeatmapData = (d: WidgetData): d is HeatmapWidgetData =>
   'rows' in d && Array.isArray((d as HeatmapWidgetData).rows)
 
@@ -84,4 +80,8 @@ export const isHeatmapData = (d: WidgetData): d is HeatmapWidgetData =>
 export async function getMyWidgets(): Promise<WidgetDTO[]> {
   const res = await api.get<WidgetDTO[]>('/widgets')
   return res.data.sort((a, b) => a.orden - b.orden)
+}
+
+export async function deleteWidget(id: string): Promise<void> {
+  await api.delete(`/widgets/${id}`)
 }
