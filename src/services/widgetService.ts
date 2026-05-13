@@ -7,12 +7,13 @@ export interface ChartWidgetData {
 }
 
 export interface StatWidgetData {
-  value: number
-  label?: string       
+  value: number | string
+  label?: string
 }
 
-export interface ErrorWidgetData {
-  error: string
+export interface MultiSeriesPoint {
+  label: string | number
+  [seriesKey: string]: string | number
 }
 
 export interface MultiSeriesWidgetData {
@@ -25,8 +26,22 @@ export interface HeatmapWidgetData {
 }
 
 export type WidgetData = ChartWidgetData | StatWidgetData | ErrorWidgetData | MultiSeriesWidgetData | HeatmapWidgetData
+  data:       MultiSeriesPoint[]
+}
 
-// Tipos d widgerts
+export type TableRow = Record<string, string | number | null>
+
+export interface TableWidgetData {
+  columns: string[]
+  rows:    TableRow[]
+}
+
+export interface ErrorWidgetData {
+  error: string
+}
+
+
+// Tipos d widgets
 
 export type WidgetTipo = 'STAT' | 'LINE' | 'BAR' | 'PIE' | 'MULTISERIES' | 'MULTIBAR' | 'HEATMAP'
 
@@ -34,10 +49,10 @@ export interface WidgetDTO {
   id:     string
   orden:  number
   titulo: string
-  subtitulo?:  string   
-  seriesName?: string    
-  xAxisLabel?:  string  
-  yAxisLabel?:  string   
+  subtitulo?:  string
+  seriesName?: string
+  xAxisLabel?:  string
+  yAxisLabel?:  string
   tipo:   WidgetTipo
   data:   WidgetData
 }
@@ -49,6 +64,12 @@ export const isChartData = (d: WidgetData): d is ChartWidgetData =>
 
 export const isStatData = (d: WidgetData): d is StatWidgetData =>
   'value' in d
+
+export const isMultiSeriesData = (d: WidgetData): d is MultiSeriesWidgetData =>
+  'seriesKeys' in d && 'data' in d && Array.isArray((d as MultiSeriesWidgetData).seriesKeys)
+
+export const isTableData = (d: WidgetData): d is TableWidgetData =>
+  'columns' in d && 'rows' in d
 
 export const isErrorData = (d: WidgetData): d is ErrorWidgetData =>
   'error' in d
