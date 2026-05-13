@@ -13,6 +13,7 @@ import DataTable, { type Column } from '../components/common/DataTable/DataTable
 import FAB                  from '../components/features/dashboard/FAB/FAB'
 import GenerateElementModal from '../components/features/dashboard/GenerateElementModal/GenerateElementModal'
 import type { ElementType, GeneratePayload } from '../types/Widget'
+import HeatmapCard from '../components/features/dashboard/CardElements/HeatmapCard/HeatmapCard'
 import {
   getMyWidgets,
   isChartData,
@@ -161,7 +162,7 @@ function WidgetRenderer({
     // Transforma {labels[], values[]} → [{label, value}] para Recharts
     const rechartData = chartData.labels.map((lbl, i) => ({
       label: String(lbl),
-      value: chartData.values[i] ?? 0,
+      value: parseFloat(String(chartData.values[i] ?? '0')),
     }))
 
     // LINE/BAR con muchos puntos: ocupa fila completa y sube altura para
@@ -190,6 +191,13 @@ function WidgetRenderer({
     )
   }
 
+  if ((widget.tipo === 'MULTISERIES' || widget.tipo === 'MULTIBAR') && isMultiSeriesData(widget.data)) {
+    const multiData = widget.data
+    const parsedData = multiData.data.map(row =>
+      Object.fromEntries(
+        Object.entries(row).map(([k, v]) => [k, k === 'label' ? v : parseFloat(String(v))])
+      )
+    )
   // TABLE → heatmap si hay ≥2 columnas numéricas, si no DataTable simple
   if (widget.tipo === 'TABLE' && isTableData(widget.data)) {
     const { columns, rows } = widget.data
@@ -226,6 +234,16 @@ function WidgetRenderer({
       <Card
         title={widget.titulo}
         subtitle={widget.subtitulo}
+        tipo={widget.tipo === 'MULTIBAR' ? 'bar' : 'line'}
+        data={parsedData}
+        height={280}
+        xKey="label"
+        xAxisLabel={widget.xAxisLabel}
+        yAxisLabel={widget.yAxisLabel}
+        series={multiData.seriesKeys.map((key) => ({
+          dataKey: key,
+          name:    key,
+        }))}
         actions={actions}
         className="md:col-span-2"
       >
@@ -234,6 +252,45 @@ function WidgetRenderer({
           data={rows as (TableRow & { id?: string | number })[]}
         />
       </Card>
+    )
+  }
+
+  if (isHeatmapData(widget.data)) {
+    const { rows } = widget.data
+    if (!rows.length) return null
+
+    const [yKey, xKey, valueKey] = Object.keys(rows[0])
+
+    const stateMap = new Map<string, Record<string, string | number | null>>()
+    const yearSet  = new Set<string>()
+
+    for (const row of rows) {
+      const state = String(row[yKey])
+      const year  = String(row[xKey])
+      const value = Number(row[valueKey])
+      yearSet.add(year)
+      if (!stateMap.has(state)) stateMap.set(state, { [yKey]: state })
+      stateMap.get(state)![year] = value
+    }
+
+    const years = [...yearSet].sort()
+    const pivotedRows = [...stateMap.values()].map(row => {
+      for (const year of years) {
+        if (!(year in row)) row[year] = null
+      }
+      return row
+    })
+
+    return (
+      <HeatmapCard
+        title={widget.titulo}
+        subtitle={widget.subtitulo}
+        rows={pivotedRows}
+        rowKey={yKey}
+        valueColumns={years}
+        actions={actions}
+        className="sm:col-span-2 md:col-span-3"
+      />
     )
   }
 

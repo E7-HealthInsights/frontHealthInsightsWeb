@@ -167,30 +167,22 @@ import {
         >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hi-border)" vertical={false} />
           <XAxis
-            dataKey={xKey}
-            tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-            tickMargin={10}
-            interval="preserveStartEnd"
-            minTickGap={24}
-            angle={-35}
-            textAnchor="end"
-            height={X_AXIS_HEIGHT}
-            axisLine={false} tickLine={false}
-            label={xAxisLabel
-              ? { value: xAxisLabel, position: 'insideBottom', offset: -8, style: AXIS_LABEL_STYLE }
-              : undefined}
-          />
-          <YAxis
-            width={Y_AXIS_WIDTH}
-            tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-            scale="log"
-            domain={['auto', 'auto']}
-            axisLine={false} tickLine={false}
-            tickCount={8}
-            label={yAxisLabel
-              ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 4, style: AXIS_LABEL_STYLE }
-              : undefined}
-          />
+          dataKey={xKey}
+          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+          axisLine={false} tickLine={false}
+          label={xAxisLabel
+            ? { value: xAxisLabel, position: 'insideBottom', offset: -12, style: AXIS_LABEL_STYLE }
+            : undefined}
+        />
+        <YAxis
+          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+          domain={['auto', 'auto']}
+          axisLine={false} tickLine={false}
+          tickCount={8}
+          label={yAxisLabel
+            ? { value: yAxisLabel, angle: -90, position: 'insideLeft', offset: 10, style: AXIS_LABEL_STYLE }
+            : undefined}
+        />
           <Tooltip content={<CustomTooltip />} />
           {legendRows > 0 && (
             <Legend
@@ -204,7 +196,7 @@ import {
           {series.map((s, i) => (
             <Line key={s.dataKey} dataKey={s.dataKey} name={s.name}
               stroke={color(s, i)} strokeWidth={2}
-              dot={{ r: 4, fill: color(s, i) }}
+              dot={{ r: 3, fill: color(s, i) }}
               activeDot={{ r: 6 }} />
           ))}
         </LineChart>

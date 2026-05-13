@@ -64,27 +64,18 @@ export default function HeatmapCard({
           <thead>
             <tr>
               <th
-                className="text-left text-[var(--color-hi-text-sub)] font-semibold pr-3 align-bottom"
-                style={{ height: 150 }}
+                className="text-left text-[var(--color-hi-text-sub)] font-semibold pr-3"
               >
                 {formatColumnLabel(rowKey)}
               </th>
               {valueColumns.map(col => (
                 <th
                   key={col}
-                  className="text-[var(--color-hi-text-sub)] font-semibold align-bottom px-1"
-                  style={{ height: 150, verticalAlign: 'bottom', minWidth: 90 }}
+                  className="text-[var(--color-hi-text-sub)] font-semibold text-center px-1 whitespace-nowrap"
+                  style={{ minWidth: 70 }}
                   title={col}
                 >
-                  <div
-                    className="inline-block whitespace-nowrap"
-                    style={{
-                      transform: 'rotate(-40deg) translateY(-4px)',
-                      transformOrigin: 'left bottom',
-                    }}
-                  >
-                    {columnLabels?.[col] ?? formatColumnLabel(col)}
-                  </div>
+                  {columnLabels?.[col] ?? formatColumnLabel(col)}
                 </th>
               ))}
             </tr>
