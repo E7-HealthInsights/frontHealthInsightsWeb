@@ -195,6 +195,38 @@ function WidgetRenderer({ widget, onDelete }: { widget: WidgetDTO; onDelete: () 
       )
     }
 
+    // Caso B: triplete plano (yKey, xKey, valueKey) → pivotar y mostrar como heatmap
+    if (labelCols.length === 2 && numericCols.length === 1) {
+      const [yKey, xKey] = labelCols
+      const valueKey     = numericCols[0]
+      const stateMap     = new Map<string, Record<string, string | number | null>>()
+      const colSet       = new Set<string>()
+      for (const row of rows) {
+        const state = String(row[yKey] ?? '')
+        const col   = String(row[xKey] ?? '')
+        const value = Number(row[valueKey])
+        colSet.add(col)
+        if (!stateMap.has(state)) stateMap.set(state, { [yKey]: state })
+        stateMap.get(state)![col] = value
+      }
+      const pivotCols   = [...colSet].sort()
+      const pivotedRows = [...stateMap.values()].map(row => {
+        for (const col of pivotCols) if (!(col in row)) row[col] = null
+        return row
+      })
+      return (
+        <HeatmapCard
+          title={widget.titulo}
+          subtitle={widget.subtitulo}
+          rows={pivotedRows}
+          rowKey={yKey}
+          valueColumns={pivotCols}
+          actions={actions}
+          className="sm:col-span-2 md:col-span-3"
+        />
+      )
+    }
+
     const tableCols: Column<TableRow & { id?: string | number }>[] = columns.map(c => ({
       key:    c,
       header: c.replace(/_/g, ' ').replace(/\b\w/g, x => x.toUpperCase()),
