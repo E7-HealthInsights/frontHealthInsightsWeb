@@ -155,6 +155,18 @@ import {
   }) {
     const legendRows   = estimateLegendRows(series)
     const legendHeight = legendRows * LEGEND_HEIGHT_PER_ROW + LEGEND_PADDING_TOP
+    // Detecta si hay una diferencia de magnitud grande entre series
+  // Si max/min > 10, la escala log hace visibles las series pequeñas
+    const allValues = data.flatMap(row =>
+      series.map(s => {
+        const v = row[s.dataKey]
+        return typeof v === 'number' ? v : parseFloat(String(v))
+      })
+    ).filter(v => v > 0 && isFinite(v))
+
+    const maxVal  = Math.max(...allValues)
+    const minVal  = Math.min(...allValues)
+    const useLog  = allValues.length > 0 && maxVal / minVal > 10   // ← umbral de 10x
     return (
       <ResponsiveContainer width="100%" height={height}>
         <LineChart
@@ -183,7 +195,8 @@ import {
           />
         <YAxis
           tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-          domain={['auto', 'auto']}
+          scale={useLog ? 'log' : 'auto'}
+          domain={useLog ? ['auto', 'auto'] : undefined}
           axisLine={false} tickLine={false}
           tickCount={8}
           label={yAxisLabel
