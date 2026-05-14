@@ -102,7 +102,7 @@ import {
         <BarChart
           data={data}
           margin={{
-            top:    legendRows > 0 ? legendHeight + 8 : 16,
+            top:    16,
             right:  16,
             left:   yAxisLabel ? 16 : 0,
             bottom: xAxisLabel ? X_LABEL_OFFSET : 8,
@@ -113,13 +113,14 @@ import {
             dataKey={xKey}
             tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
             tickMargin={10}
-            interval={0}
+            interval="preserveStartEnd"
+            minTickGap={0}
             angle={-35}
             textAnchor="end"
             height={X_AXIS_HEIGHT}
             axisLine={false} tickLine={false}
             label={xAxisLabel
-              ? { value: xAxisLabel, position: 'insideBottom', offset: -8, style: AXIS_LABEL_STYLE }
+              ? { value: xAxisLabel, position: 'insideBottom', offset: -20, style: AXIS_LABEL_STYLE }
               : undefined}
           />
           <YAxis
@@ -159,7 +160,7 @@ import {
         <LineChart
           data={data}
           margin={{
-            top:    legendRows > 0 ? legendHeight + 8 : 16,
+            top:    16,
             right:  16,
             left:   yAxisLabel ? 16 : 0,
             bottom: xAxisLabel ? X_LABEL_OFFSET : 8,
@@ -170,13 +171,14 @@ import {
             dataKey={xKey}
             tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
             tickMargin={10}
-            interval={0}
+            interval="preserveStartEnd"
+            minTickGap={20}
             angle={-35}
             textAnchor="end"
-            height={X_AXIS_HEIGHT}    // ← usa la misma constante que Bar
+            height={X_AXIS_HEIGHT}
             axisLine={false} tickLine={false}
             label={xAxisLabel
-              ? { value: xAxisLabel, position: 'insideBottom', offset: -8, style: AXIS_LABEL_STYLE }
+              ? { value: xAxisLabel, position: 'insideBottom', offset: -20, style: AXIS_LABEL_STYLE }
               : undefined}
           />
         <YAxis

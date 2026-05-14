@@ -137,8 +137,7 @@ function WidgetRenderer({ widget, onDelete }: { widget: WidgetDTO; onDelete: () 
         yAxisLabel={widget.yAxisLabel}
         series={series}
         actions={actions}
-        height={340}
-        className="sm:col-span-2 md:col-span-3"
+        height={260}
       />
     )
   }
@@ -152,10 +151,6 @@ function WidgetRenderer({ widget, onDelete }: { widget: WidgetDTO; onDelete: () 
       value: parseFloat(String(chartData.values[i] ?? '0')),
     }))
 
-    const isWide    = rechartData.length >= 10
-    const className = isWide ? 'sm:col-span-2 md:col-span-3' : undefined
-    const height    = isWide ? 320 : 260
-
     return (
       <ChartCard
         title={widget.titulo}
@@ -167,8 +162,7 @@ function WidgetRenderer({ widget, onDelete }: { widget: WidgetDTO; onDelete: () 
         yAxisLabel={widget.yAxisLabel}
         series={[{ dataKey: 'value', name: widget.seriesName ?? widget.titulo }]}
         actions={actions}
-        height={height}
-        className={className}
+        height={260}
       />
     )
   }

@@ -23,17 +23,17 @@ export default function LoginCard({
   }
 
   return (
-    <Card className="w-full max-w-sm">
+    <Card className="w-full max-w-[420px] !p-8">
       <div className="mb-6">
-        <h2 className="text-lg font-semibold text-[var(--color-hi-text-main)]">
+        <h2 className="text-xl font-semibold text-[var(--color-hi-text-main)]">
           Iniciar sesión
         </h2>
-        <p className="mt-1 text-xs text-[var(--color-hi-text-sub)]">
+        <p className="mt-1 text-sm text-[var(--color-hi-text-sub)]">
           Ingresa tus credenciales para continuar
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
         <InputField
           label="Correo electrónico"
           type="email"
@@ -60,7 +60,7 @@ export default function LoginCard({
         <Button
           type="submit"
           variant="primary"
-          size="md"
+          size="lg"
           loading={loading}
           className="w-full mt-2"
         >
