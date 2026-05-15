@@ -1,8 +1,7 @@
-import { useState } from 'react'
-import { useNavigate }         from 'react-router-dom'
-import { useAuth }             from '../context/AuthContext'
-import { logout }              from '../services/authService'
-
+import { useState }             from 'react'
+import { useNavigate }          from 'react-router-dom'
+import { useAuth }              from '../context/AuthContext'
+import { logout }               from '../services/authService'
 
 import Navbar               from '../components/common/Navbar'
 import Card                 from '../components/common/Card/Card'
@@ -13,14 +12,15 @@ import DataTable, { type Column } from '../components/common/DataTable/DataTable
 import FAB                  from '../components/features/dashboard/FAB/FAB'
 import GenerateElementModal from '../components/features/dashboard/GenerateElementModal/GenerateElementModal'
 import type { ElementType, GeneratePayload } from '../types/Widget'
-import HeatmapCard from '../components/features/dashboard/CardElements/HeatmapCard/HeatmapCard'
 import {
   getMyWidgets,
+  deleteWidget,
   isChartData,
   isErrorData,
   isMultiSeriesData,
   isStatData,
   isTableData,
+  isHeatmapData,
   type ChartWidgetData,
   type MultiSeriesPoint,
   type StatWidgetData,
@@ -28,6 +28,8 @@ import {
   type WidgetDTO,
 } from '../services/widgetService'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+
+// ── Nav links ─────────────────────────────────────────────────────────────────
 
 const NAV_LINKS = [
   { key: 'inicio',       label: 'Inicio',       path: '/'             },
@@ -41,9 +43,8 @@ const CHART_TYPE_MAP = {
   PIE:  'pie',
 } as const
 
-// Grupos de edad legibles para los widgets MULTISERIES de Mercadotecnia
-// (HU HI-485): dejamos quinquenales adultos + bandas de PAHO que no se solapan,
-// y descartamos All ages, Age-standardized, pediátricos solapados, etc.
+// ── Helpers para Mercadotecnia ────────────────────────────────────────────────
+
 const KEEP_AGE_GROUPS = new Set<string>([
   '20-24 years','25-29 years','30-34 years','35-39 years','40-44 years',
   '45-49 years','50-54 years','55-59 years','60-64 years','65-69 years',
@@ -61,7 +62,6 @@ const maybeFilterAgeGroups = (points: MultiSeriesPoint[]): MultiSeriesPoint[] =>
   )
 }
 
-// Mapping para nombres oficiales PAHO (widget orden 6) → etiquetas cortas
 const SERIES_LABEL_MAP: Record<string, string> = {
   'Prevalence of obesity among children and adolescents, BMI > +2 standard deviations above the median (crude estimate) (%)': 'Obesidad infantil',
   'Prevalence of overweight among children and adolescents, BMI > +1 standard deviation above the median (crude estimate) (%)': 'Sobrepeso infantil',
@@ -73,37 +73,27 @@ const SERIES_LABEL_MAP: Record<string, string> = {
 
 const shortenSeries = (key: string) => SERIES_LABEL_MAP[key] ?? key
 
+// ── Helpers de formato ────────────────────────────────────────────────────────
+
 const formatStatValue = (v: number | string) =>
   typeof v === 'number' ? v.toLocaleString('es-MX') : v
 
-// Infiere la unidad de un STAT: usa la del backend si existe; si no, deduce
-// "%" cuando el título arranca/menciona porcentaje; para valores textuales,
-// no muestra unidad.
-const resolveStatLabel = (
-  titulo: string,
-  data: StatWidgetData,
-): string | undefined => {
+const resolveStatLabel = (titulo: string, data: StatWidgetData): string | undefined => {
   if (data.label) return data.label
   if (typeof data.value === 'string') return undefined
-  if (titulo.trim().startsWith('%') || /porcentaje|prevalencia/i.test(titulo)) {
-    return '%'
-  }
+  if (titulo.trim().startsWith('%') || /porcentaje|prevalencia/i.test(titulo)) return '%'
   return undefined
 }
 
-function WidgetRenderer({
-  widget,
-  onDelete,
-}: {
-  widget:   WidgetDTO
-  onDelete: () => void
-}) {
+// ── WidgetRenderer ────────────────────────────────────────────────────────────
+
+function WidgetRenderer({ widget, onDelete }: { widget: WidgetDTO; onDelete: () => void }) {
   const isDefault = !('usuario' in widget)
   const actions   = isDefault
     ? []
     : [{ label: 'Eliminar', onClick: onDelete, danger: true as const }]
 
-  // Error de query en el backend
+  // ── Error de query en el backend ──────────────────────────────────────────
   if (isErrorData(widget.data)) {
     return (
       <div className="bg-[var(--color-hi-surface)] border border-[var(--color-hi-border)]
@@ -111,14 +101,12 @@ function WidgetRenderer({
         <p className="text-xs font-semibold text-[var(--color-hi-text-main)] mb-2">
           {widget.titulo}
         </p>
-        <p className="text-xs text-[var(--color-hi-danger)]">
-          {widget.data.error}
-        </p>
+        <p className="text-xs text-[var(--color-hi-danger)]">{widget.data.error}</p>
       </div>
     )
   }
 
-  // STAT (admite value numérico o string)
+  // ── STAT ──────────────────────────────────────────────────────────────────
   if (widget.tipo === 'STAT' && isStatData(widget.data)) {
     return (
       <StatCard
@@ -130,7 +118,7 @@ function WidgetRenderer({
     )
   }
 
-  // MULTISERIES (BarChart agrupado)
+  // ── MULTISERIES (líneas o barras agrupadas con múltiples series) ──────────
   if (widget.tipo === 'MULTISERIES' && isMultiSeriesData(widget.data)) {
     const filteredPoints = maybeFilterAgeGroups(widget.data.data)
     const series = widget.data.seriesKeys.map(key => ({
@@ -142,34 +130,26 @@ function WidgetRenderer({
       <ChartCard
         title={widget.titulo}
         subtitle={widget.subtitulo}
-        tipo="bar"
+        tipo="line"
         data={filteredPoints as Record<string, string | number>[]}
         xKey="label"
         xAxisLabel={widget.xAxisLabel}
         yAxisLabel={widget.yAxisLabel}
         series={series}
         actions={actions}
-        height={340}
-        className="sm:col-span-2 md:col-span-3"
+        height={260}
       />
     )
   }
 
-  // LINE / BAR / PIE
+  // ── LINE / BAR / PIE ──────────────────────────────────────────────────────
   if (isChartData(widget.data)) {
     const chartData = widget.data as ChartWidgetData
 
-    // Transforma {labels[], values[]} → [{label, value}] para Recharts
     const rechartData = chartData.labels.map((lbl, i) => ({
       label: String(lbl),
       value: parseFloat(String(chartData.values[i] ?? '0')),
     }))
-
-    // LINE/BAR con muchos puntos: ocupa fila completa y sube altura para
-    // que las etiquetas rotadas del eje X no se solapen.
-    const isWide = rechartData.length >= 10
-    const className = isWide ? 'sm:col-span-2 md:col-span-3' : undefined
-    const height    = isWide ? 320 : 220
 
     return (
       <ChartCard
@@ -180,31 +160,20 @@ function WidgetRenderer({
         xKey="label"
         xAxisLabel={widget.xAxisLabel}
         yAxisLabel={widget.yAxisLabel}
-        series={[{
-          dataKey: 'value',
-          name:    widget.seriesName ?? widget.titulo,
-        }]}
+        series={[{ dataKey: 'value', name: widget.seriesName ?? widget.titulo }]}
         actions={actions}
-        height={height}
-        className={className}
+        height={260}
       />
     )
   }
 
-  if ((widget.tipo === 'MULTISERIES' || widget.tipo === 'MULTIBAR') && isMultiSeriesData(widget.data)) {
-    const multiData = widget.data
-    const parsedData = multiData.data.map(row =>
-      Object.fromEntries(
-        Object.entries(row).map(([k, v]) => [k, k === 'label' ? v : parseFloat(String(v))])
-      )
-    )
-  // TABLE → heatmap si hay ≥2 columnas numéricas, si no DataTable simple
+  // ── TABLE (Gabo) ──────────────────────────────────────────────────────────
   if (widget.tipo === 'TABLE' && isTableData(widget.data)) {
     const { columns, rows } = widget.data
-    const sample = rows[0] ?? {}
-    const numericCols   = columns.filter(c => typeof sample[c] === 'number')
-    const labelCols     = columns.filter(c => typeof sample[c] !== 'number')
-    const useHeatmap    = numericCols.length >= 2 && labelCols.length >= 1
+    const sample      = rows[0] ?? {}
+    const numericCols = columns.filter(c => typeof sample[c] === 'number')
+    const labelCols   = columns.filter(c => typeof sample[c] !== 'number')
+    const useHeatmap  = numericCols.length >= 2 && labelCols.length >= 1
 
     if (useHeatmap) {
       return (
@@ -214,6 +183,38 @@ function WidgetRenderer({
           rowKey={labelCols[0]}
           valueColumns={numericCols}
           rows={rows}
+          actions={actions}
+          className="sm:col-span-2 md:col-span-3"
+        />
+      )
+    }
+
+    // Caso B: triplete plano (yKey, xKey, valueKey) → pivotar y mostrar como heatmap
+    if (labelCols.length === 2 && numericCols.length === 1) {
+      const [yKey, xKey] = labelCols
+      const valueKey     = numericCols[0]
+      const stateMap     = new Map<string, Record<string, string | number | null>>()
+      const colSet       = new Set<string>()
+      for (const row of rows) {
+        const state = String(row[yKey] ?? '')
+        const col   = String(row[xKey] ?? '')
+        const value = Number(row[valueKey])
+        colSet.add(col)
+        if (!stateMap.has(state)) stateMap.set(state, { [yKey]: state })
+        stateMap.get(state)![col] = value
+      }
+      const pivotCols   = [...colSet].sort()
+      const pivotedRows = [...stateMap.values()].map(row => {
+        for (const col of pivotCols) if (!(col in row)) row[col] = null
+        return row
+      })
+      return (
+        <HeatmapCard
+          title={widget.titulo}
+          subtitle={widget.subtitulo}
+          rows={pivotedRows}
+          rowKey={yKey}
+          valueColumns={pivotCols}
           actions={actions}
           className="sm:col-span-2 md:col-span-3"
         />
@@ -234,16 +235,6 @@ function WidgetRenderer({
       <Card
         title={widget.titulo}
         subtitle={widget.subtitulo}
-        tipo={widget.tipo === 'MULTIBAR' ? 'bar' : 'line'}
-        data={parsedData}
-        height={280}
-        xKey="label"
-        xAxisLabel={widget.xAxisLabel}
-        yAxisLabel={widget.yAxisLabel}
-        series={multiData.seriesKeys.map((key) => ({
-          dataKey: key,
-          name:    key,
-        }))}
         actions={actions}
         className="md:col-span-2"
       >
@@ -255,6 +246,7 @@ function WidgetRenderer({
     )
   }
 
+  // ── HEATMAP (Omar) ────────────────────────────────────────────────────────
   if (isHeatmapData(widget.data)) {
     const { rows } = widget.data
     if (!rows.length) return null
@@ -273,7 +265,7 @@ function WidgetRenderer({
       stateMap.get(state)![year] = value
     }
 
-    const years = [...yearSet].sort()
+    const years      = [...yearSet].sort()
     const pivotedRows = [...stateMap.values()].map(row => {
       for (const year of years) {
         if (!(year in row)) row[year] = null
@@ -297,6 +289,8 @@ function WidgetRenderer({
   return null
 }
 
+// ── DashboardPage ─────────────────────────────────────────────────────────────
+
 export default function DashboardPage() {
   const { user, setUser } = useAuth()
   const navigate          = useNavigate()
@@ -305,31 +299,21 @@ export default function DashboardPage() {
   const [modalOpen,   setModalOpen]   = useState(false)
   const [elementType, setElementType] = useState<ElementType>('grafica')
 
-  // React Query, un solo fetch, cacheado automáticamente
-
-  const {
-    data:    widgets = [],
-    isLoading,
-    isError,
-  } = useQuery({
+  const { data: widgets = [], isLoading, isError } = useQuery({
     queryKey: ['myWidgets'],
     queryFn:  getMyWidgets,
-    staleTime: 5 * 60 * 1000,   // 5 min
+    staleTime: 5 * 60 * 1000,
   })
-
-
 
   const handleLogout = async () => {
     await logout()
     setUser(null)
-    queryClient.clear()   // limpia el caché de React Query al cerrar sesión
+    queryClient.clear()
     navigate('/login', { replace: true })
   }
 
-  // mas adelante: borrar widgets
   const handleDelete = async (id: string) => {
     await deleteWidget(id)
-    // Actualiza el caché local sin refetch
     queryClient.setQueryData<WidgetDTO[]>(
       ['myWidgets'],
       prev => prev?.filter(w => w.id !== id)
@@ -342,12 +326,8 @@ export default function DashboardPage() {
   }
 
   const handleGenerate = (_payload: GeneratePayload) => {
-    // mas adelante: POST /widgets
-    // al guardar, invalidar el caché para refetch
-    // queryClient.invalidateQueries({ queryKey: ['myWidgets'] })
+    // TODO: POST /widgets → queryClient.invalidateQueries({ queryKey: ['myWidgets'] })
   }
-
-
 
   return (
     <div className="min-h-screen bg-[var(--color-hi-bg)]">
@@ -363,7 +343,7 @@ export default function DashboardPage() {
         {/* Saludo */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-[var(--color-hi-navy)]">
-            Bienvenido, {user?.name}
+            Hola, {user?.name}
           </h1>
           <p className="text-sm text-[var(--color-hi-text-sub)] mt-0.5">
             {user?.role} · {user?.email}
@@ -390,7 +370,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Widgets */}
+        {/* Grid de widgets */}
         {!isLoading && !isError && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {widgets.map(w => (

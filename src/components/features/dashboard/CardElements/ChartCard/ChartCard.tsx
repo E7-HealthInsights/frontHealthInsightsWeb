@@ -102,7 +102,7 @@ import {
         <BarChart
           data={data}
           margin={{
-            top:    legendRows > 0 ? legendHeight + 8 : 16,
+            top:    16,
             right:  16,
             left:   yAxisLabel ? 16 : 0,
             bottom: xAxisLabel ? X_LABEL_OFFSET : 8,
@@ -113,13 +113,14 @@ import {
             dataKey={xKey}
             tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
             tickMargin={10}
-            interval={0}
+            interval="preserveStartEnd"
+            minTickGap={0}
             angle={-35}
             textAnchor="end"
             height={X_AXIS_HEIGHT}
             axisLine={false} tickLine={false}
             label={xAxisLabel
-              ? { value: xAxisLabel, position: 'insideBottom', offset: -8, style: AXIS_LABEL_STYLE }
+              ? { value: xAxisLabel, position: 'insideBottom', offset: -20, style: AXIS_LABEL_STYLE }
               : undefined}
           />
           <YAxis
@@ -154,12 +155,24 @@ import {
   }) {
     const legendRows   = estimateLegendRows(series)
     const legendHeight = legendRows * LEGEND_HEIGHT_PER_ROW + LEGEND_PADDING_TOP
+    // Detecta si hay una diferencia de magnitud grande entre series
+  // Si max/min > 10, la escala log hace visibles las series pequeñas
+    const allValues = data.flatMap(row =>
+      series.map(s => {
+        const v = row[s.dataKey]
+        return typeof v === 'number' ? v : parseFloat(String(v))
+      })
+    ).filter(v => v > 0 && isFinite(v))
+
+    const maxVal  = Math.max(...allValues)
+    const minVal  = Math.min(...allValues)
+    const useLog  = allValues.length > 0 && maxVal / minVal > 10   // ← umbral de 10x
     return (
       <ResponsiveContainer width="100%" height={height}>
         <LineChart
           data={data}
           margin={{
-            top:    legendRows > 0 ? legendHeight + 8 : 16,
+            top:    16,
             right:  16,
             left:   yAxisLabel ? 16 : 0,
             bottom: xAxisLabel ? X_LABEL_OFFSET : 8,
@@ -167,16 +180,23 @@ import {
         >
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-hi-border)" vertical={false} />
           <XAxis
-          dataKey={xKey}
-          tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-          axisLine={false} tickLine={false}
-          label={xAxisLabel
-            ? { value: xAxisLabel, position: 'insideBottom', offset: -12, style: AXIS_LABEL_STYLE }
-            : undefined}
-        />
+            dataKey={xKey}
+            tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
+            tickMargin={10}
+            interval="preserveStartEnd"
+            minTickGap={20}
+            angle={-35}
+            textAnchor="end"
+            height={X_AXIS_HEIGHT}
+            axisLine={false} tickLine={false}
+            label={xAxisLabel
+              ? { value: xAxisLabel, position: 'insideBottom', offset: -20, style: AXIS_LABEL_STYLE }
+              : undefined}
+          />
         <YAxis
           tick={{ fontSize: 11, fill: 'var(--color-hi-text-sub)' }}
-          domain={['auto', 'auto']}
+          scale={useLog ? 'log' : 'auto'}
+          domain={useLog ? ['auto', 'auto'] : undefined}
           axisLine={false} tickLine={false}
           tickCount={8}
           label={yAxisLabel

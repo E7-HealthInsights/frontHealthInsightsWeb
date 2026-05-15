@@ -116,11 +116,17 @@ const handleSubmit = async (email: string, password: string) => {
 
       {/* ── Panel derecho: formulario ───────────────────────────────────── */}
       <main
-        className="flex-1 flex flex-col items-center justify-center
-          bg-[var(--color-hi-bg)] p-8"
+        className="flex-1 flex flex-col items-center justify-center p-8 relative"
+        style={{
+          backgroundImage: 'url(/LoginImage.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
       >
+        {/* overlay sutil */}
+        <div className="absolute inset-0 bg-white/20 backdrop-blur-sm" />
         {/* Logo compacto visible solo en móvil */}
-        <div className="flex items-center gap-2 mb-8 lg:hidden">
+        <div className="relative z-10 flex items-center gap-2 mb-8 lg:hidden">
           <div
             className="w-8 h-8 rounded-[var(--radius-md)] bg-[var(--color-hi-primary)]
               flex items-center justify-center"
@@ -140,16 +146,18 @@ const handleSubmit = async (email: string, password: string) => {
         </div>
 
         {sessionMessage && (
-          <div className="mb-4 w-full max-w-sm rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
+          <div className="relative z-10 mb-4 w-full max-w-sm rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
             {sessionMessage}
           </div>
         )}
 
-        <LoginCard
-          loading={loading}
-          error={error}
-          onSubmit={handleSubmit}
-        />
+        <div className="relative z-10 w-full flex justify-center">
+          <LoginCard
+            loading={loading}
+            error={error}
+            onSubmit={handleSubmit}
+          />
+        </div>
       </main>
 
     </div>
