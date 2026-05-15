@@ -1,0 +1,46 @@
+steps:
+  # 1. Build de la imagen
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - '--build-arg=VITE_API_URL=$_VITE_API_URL'
+      - '--build-arg=VITE_FIREBASE_API_KEY=$_VITE_FIREBASE_API_KEY'
+      - '--build-arg=VITE_FIREBASE_AUTH_DOMAIN=$_VITE_FIREBASE_AUTH_DOMAIN'
+      - '--build-arg=VITE_FIREBASE_PROJECT_ID=$_VITE_FIREBASE_PROJECT_ID'
+      - '--build-arg=VITE_FIREBASE_APP_ID=$_VITE_FIREBASE_APP_ID'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO/$_SERVICE_NAME:$SHORT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO/$_SERVICE_NAME:latest'
+      - '.'
+
+  # 2. Push
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - push
+      - '--all-tags'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO/$_SERVICE_NAME'
+
+  # 3. Deploy
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - '$_SERVICE_NAME'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO/$_SERVICE_NAME:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+
+substitutions:
+  _REPO: healthinsights-repo        # Tu repositorio de Artifact Registry
+  _SERVICE_NAME: frontend-health    # Nombre para este Cloud Run
+  _VITE_API_URL: ''                 # Llenar en el Trigger de GCP
+  _VITE_FIREBASE_API_KEY: ''        # Llenar en el Trigger de GCP
+  _VITE_FIREBASE_AUTH_DOMAIN: ''
+  _VITE_FIREBASE_PROJECT_ID: ''
+  _VITE_FIREBASE_APP_ID: ''
+
+options:
+  logging: CLOUD_LOGGING_ONLY
