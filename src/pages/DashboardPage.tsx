@@ -52,14 +52,19 @@ const KEEP_AGE_GROUPS = new Set<string>([
   '5-9 years','10-19 years','20+ years',
 ])
 
+const ageGroupLowerBound = (label: string): number => {
+  const match = label.match(/^(\d+)/)
+  return match ? Number(match[1]) : Number.POSITIVE_INFINITY
+}
+
 const maybeFilterAgeGroups = (points: MultiSeriesPoint[]): MultiSeriesPoint[] => {
   const looksLikeAge = points.some(
     p => typeof p.label === 'string' && KEEP_AGE_GROUPS.has(p.label)
   )
   if (!looksLikeAge) return points
-  return points.filter(
-    p => typeof p.label === 'string' && KEEP_AGE_GROUPS.has(p.label)
-  )
+  return points
+    .filter(p => typeof p.label === 'string' && KEEP_AGE_GROUPS.has(p.label))
+    .sort((a, b) => ageGroupLowerBound(a.label as string) - ageGroupLowerBound(b.label as string))
 }
 
 const SERIES_LABEL_MAP: Record<string, string> = {
@@ -125,6 +130,45 @@ function WidgetRenderer({ widget, onDelete }: { widget: WidgetDTO; onDelete: () 
       dataKey: key,
       name:    shortenSeries(key),
     }))
+
+    // Fusionar series infantiles + adultas en una sola línea por métrica.
+    // PAHO entrega "children/adolescents" en 5-9 y 10-19, y "adults" agregado en 20+.
+    // Para tener líneas continuas usamos los "crude estimate" de adultos
+    // (la misma metodología que los datos infantiles).
+    const obesityChildKey = widget.data.seriesKeys.find(k => /obesity.*children|obesity.*adolescents/i.test(k))
+    const overweightChildKey = widget.data.seriesKeys.find(k => /overweight.*children|overweight.*adolescents/i.test(k))
+    const obesityAdultCrudeKey = widget.data.seriesKeys.find(k => /obesity.*adults.*crude/i.test(k))
+    const overweightAdultCrudeKey = widget.data.seriesKeys.find(k => /overweight.*adults.*crude/i.test(k))
+
+    if (obesityChildKey && overweightChildKey && obesityAdultCrudeKey && overweightAdultCrudeKey) {
+      const mergedPoints = filteredPoints.map(p => {
+        const isAdult = typeof p.label === 'string' && /20\+/.test(p.label)
+        return {
+          label:     p.label,
+          Obesidad:  Number(isAdult ? p[obesityAdultCrudeKey] : p[obesityChildKey]) || 0,
+          Sobrepeso: Number(isAdult ? p[overweightAdultCrudeKey] : p[overweightChildKey]) || 0,
+        }
+      })
+
+      return (
+        <ChartCard
+          title={widget.titulo}
+          subtitle={widget.subtitulo}
+          tipo="line"
+          data={mergedPoints as Record<string, string | number>[]}
+          xKey="label"
+          xAxisLabel={widget.xAxisLabel}
+          yAxisLabel={widget.yAxisLabel}
+          series={[
+            { dataKey: 'Obesidad',  name: 'Obesidad' },
+            { dataKey: 'Sobrepeso', name: 'Sobrepeso' },
+          ]}
+          actions={actions}
+          height={340}
+          className="sm:col-span-2 md:col-span-3"
+        />
+      )
+    }
 
     return (
       <ChartCard
