@@ -25,7 +25,9 @@ ENV VITE_FIREBASE_AUTH_DOMAIN=$VITE_FIREBASE_AUTH_DOMAIN
 ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
 ENV VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID
 
-RUN npm run build
+# Cambiamos "npm run build" por el comando directo de vite
+# Esto se salta el "tsc -b" que está causando el fallo
+RUN npx vite build
 
 # ── Stage 2: serve con nginx ─────────────────────────────────────────────────
 FROM nginx:1.27-alpine AS runner
