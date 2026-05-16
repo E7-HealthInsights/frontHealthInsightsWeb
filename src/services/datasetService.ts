@@ -3,6 +3,7 @@ import api from '../lib/api'
 export interface DatasetOption {
   id:          string
   nombre:      string
+  nombreTabla: string   // nombre real de la tabla en BD, usado en queryConfig
   descripcion: string
   fuente:      string
 }

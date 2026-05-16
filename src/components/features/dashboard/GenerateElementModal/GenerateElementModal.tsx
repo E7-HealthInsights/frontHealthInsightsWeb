@@ -51,9 +51,10 @@ export interface GenerateElementModalProps {
   isOpen:      boolean
   onClose:     () => void
   elementType: ElementType
-  datasetId:   string             // viene del FAB
-  currentWidgetCount: number      // para calcular orden
-  onSaved:     () => void         // dispara invalidateQueries en el padre
+  datasetId:   string
+  nombreTabla: string             // nombre real de la tabla en BD
+  currentWidgetCount: number
+  onSaved:     () => void
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -151,6 +152,7 @@ export default function GenerateElementModal({
   onClose,
   elementType,
   datasetId,
+  nombreTabla,
   currentWidgetCount,
   onSaved,
 }: GenerateElementModalProps) {
@@ -258,19 +260,7 @@ export default function GenerateElementModal({
       // Importamos dinámicamente para no crear un ciclo en el archivo
       const { createWidget } = await import('../../../../services/widgetService')
 
-      // Obtenemos el nombre de tabla del dataset (datasetId es el id del dataset,
-      // pero el sp necesita el nombre de la tabla; lo obtenemos de las métricas
-      // — todas comparten el mismo dataset_id, así que usamos el datasetId directo
-      // que el backend resolverá internamente).
-      // Nota: por ahora mandamos datasetId como "tabla" porque el endpoint de widgets
-      // en el backend recibe queryConfig como string opaco y lo evalúa según su lógica
-      // interna. Si el equipo de back expone un campo "nombre_tabla" en el GET /datasets,
-      // se puede ajustar aquí.
-      //
-      // UPDATE: getDatasets() devuelve DatasetOption que NO incluye nombre_tabla.
-      // Necesitamos pasarlo. Por ahora usamos el id — esto puede cambiarse cuando
-      // el equipo de back exponga el campo.
-      const queryConfig = buildQueryConfig(tipo, datasetId, allFields)
+      const queryConfig = buildQueryConfig(tipo, nombreTabla, allFields)
 
       await createWidget({
         titulo:      titulo.trim(),

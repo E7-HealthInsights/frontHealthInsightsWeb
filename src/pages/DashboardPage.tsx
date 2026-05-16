@@ -448,6 +448,7 @@ export default function DashboardPage() {
           onClose={() => setModalOpen(false)}
           elementType={fabSelection.elementType}
           datasetId={fabSelection.datasetId}
+          nombreTabla={fabSelection.nombreTabla}
           currentWidgetCount={widgets.length}
           onSaved={handleWidgetSaved}
         />

@@ -19,6 +19,7 @@ export const ELEMENT_TO_TIPOS: Record<ElementType, WidgetTipo[]> = {
 export interface FABSelection {
   elementType: ElementType
   datasetId:   string
+  nombreTabla: string   // nombre real de la tabla, resuelto desde DatasetOption
 }
 
 interface FABProps {
@@ -128,7 +129,9 @@ export default function FAB({ onGenerate, className = '' }: FABProps) {
 
   const handleConfirm = () => {
     if (!selected || !datasetId) return
-    onGenerate({ elementType: selected, datasetId })
+    const dataset = datasets.find(d => d.id === datasetId)
+    if (!dataset) return
+    onGenerate({ elementType: selected, datasetId, nombreTabla: dataset.nombreTabla })
     handleClose()
   }
 
