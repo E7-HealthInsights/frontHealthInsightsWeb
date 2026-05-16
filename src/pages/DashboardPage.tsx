@@ -11,7 +11,7 @@ import HeatmapCard          from '../components/features/dashboard/CardElements/
 import DataTable, { type Column } from '../components/common/DataTable/DataTable'
 import FAB                  from '../components/features/dashboard/FAB/FAB'
 import GenerateElementModal from '../components/features/dashboard/GenerateElementModal/GenerateElementModal'
-import type { ElementType, GeneratePayload } from '../types/Widget'
+import type { ElementType, FABSelection } from '../components/features/dashboard/FAB/FAB'
 import {
   getMyWidgets,
   deleteWidget,
@@ -340,8 +340,8 @@ export default function DashboardPage() {
   const navigate          = useNavigate()
   const queryClient       = useQueryClient()
 
-  const [modalOpen,   setModalOpen]   = useState(false)
-  const [elementType, setElementType] = useState<ElementType>('grafica')
+  const [modalOpen,     setModalOpen]     = useState(false)
+  const [fabSelection,  setFabSelection]  = useState<FABSelection | null>(null)
 
   const { data: widgets = [], isLoading, isError } = useQuery({
     queryKey: ['myWidgets'],
@@ -364,13 +364,13 @@ export default function DashboardPage() {
     )
   }
 
-  const handleFABGenerate = (type: ElementType) => {
-    setElementType(type)
+  const handleFABGenerate = (selection: FABSelection) => {
+    setFabSelection(selection)
     setModalOpen(true)
   }
 
-  const handleGenerate = (_payload: GeneratePayload) => {
-    // TODO: POST /widgets → queryClient.invalidateQueries({ queryKey: ['myWidgets'] })
+  const handleWidgetSaved = () => {
+    queryClient.invalidateQueries({ queryKey: ['myWidgets'] })
   }
 
   return (
@@ -442,12 +442,16 @@ export default function DashboardPage() {
 
       <FAB onGenerate={handleFABGenerate} />
 
-      <GenerateElementModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        elementType={elementType}
-        onGenerate={handleGenerate}
-      />
+      {fabSelection && (
+        <GenerateElementModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          elementType={fabSelection.elementType}
+          datasetId={fabSelection.datasetId}
+          currentWidgetCount={widgets.length}
+          onSaved={handleWidgetSaved}
+        />
+      )}
 
     </div>
   )

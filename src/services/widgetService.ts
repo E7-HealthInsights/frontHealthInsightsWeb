@@ -1,5 +1,6 @@
 import api from "../lib/api"
 
+// ── Tipos de datos que devuelve el GET /widgets ───────────────────────────────
 
 export interface ChartWidgetData {
   labels: (string | number)[]
@@ -25,8 +26,13 @@ export interface HeatmapWidgetData {
   rows: Record<string, string | number>[]
 }
 
-export type WidgetData = ChartWidgetData | StatWidgetData | ErrorWidgetData | MultiSeriesWidgetData | HeatmapWidgetData | TableWidgetData
-
+export type WidgetData =
+  | ChartWidgetData
+  | StatWidgetData
+  | ErrorWidgetData
+  | MultiSeriesWidgetData
+  | HeatmapWidgetData
+  | TableWidgetData
 
 export type TableRow = Record<string, string | number | null>
 
@@ -39,24 +45,23 @@ export interface ErrorWidgetData {
   error: string
 }
 
-
-// Tipos d widgets
+// ── Tipos de widget ───────────────────────────────────────────────────────────
 
 export type WidgetTipo = 'STAT' | 'LINE' | 'BAR' | 'PIE' | 'MULTISERIES' | 'MULTIBAR' | 'HEATMAP' | 'TABLE'
 
 export interface WidgetDTO {
-  id:     string
-  orden:  number
-  titulo: string
+  id:          string
+  orden:       number
+  titulo:      string
   subtitulo?:  string
   seriesName?: string
-  xAxisLabel?:  string
-  yAxisLabel?:  string
-  tipo:   WidgetTipo
-  data:   WidgetData
+  xAxisLabel?: string
+  yAxisLabel?: string
+  tipo:        WidgetTipo
+  data:        WidgetData
 }
 
-// data types
+// ── Type guards ───────────────────────────────────────────────────────────────
 
 export const isChartData = (d: WidgetData): d is ChartWidgetData =>
   'labels' in d && 'values' in d
@@ -76,6 +81,95 @@ export const isErrorData = (d: WidgetData): d is ErrorWidgetData =>
 export const isHeatmapData = (d: WidgetData): d is HeatmapWidgetData =>
   'rows' in d && Array.isArray((d as HeatmapWidgetData).rows)
 
+// ── Mapping tipo nombre → tipoId (Tipo_de_Grafica en BD) ─────────────────────
+
+export const TIPO_ID_MAP: Record<WidgetTipo, number> = {
+  STAT:        1,
+  LINE:        2,
+  BAR:         3,
+  PIE:         4,
+  TABLE:       5,
+  MULTISERIES: 6,
+  MULTIBAR:    7,
+  HEATMAP:     5, // no existe como tipo propio; se maneja como TABLE en backend
+}
+
+// ── Sanitización de filtroVal ─────────────────────────────────────────────────
+// Previene caracteres que podrían usarse en inyección SQL.
+// El backend ya usa QUOTE() en los stored procedures, esto es defensa en profundidad.
+
+const UNSAFE_PATTERN = /['";\-\-\/\*\\]/g
+
+export function sanitizeFiltroVal(raw: string): string {
+  return raw.replace(UNSAFE_PATTERN, '').trim()
+}
+
+// ── Construcción del queryConfig según tipo ───────────────────────────────────
+
+export interface QueryConfigStat {
+  tabla:       string
+  funcion:     string
+  columna:     string
+  filtroCol?:  string
+  filtroVal?:  string
+  filtroCol2?: string
+  filtroVal2?: string
+}
+
+export interface QueryConfigSeries {
+  tabla:       string
+  colX:        string
+  colY:        string
+  funcion:     string
+  groupBy:     string
+  filtroCol?:  string
+  filtroVal?:  string
+  filtroCol2?: string
+  filtroVal2?: string
+}
+
+export interface QueryConfigPie {
+  tabla:    string
+  colLabel: string
+  colValue: string
+  funcion:  string
+}
+
+export interface QueryConfigTable {
+  tabla:    string
+  columnas: string
+  limite:   number
+}
+
+export interface QueryConfigMultiseries {
+  tabla:       string
+  colX:        string
+  colY:        string
+  colSerie:    string
+  funcion:     string
+  filtroCol?:  string
+  filtroVal?:  string
+  filtroCol2?: string
+  filtroVal2?: string
+}
+
+export type QueryConfig =
+  | QueryConfigStat
+  | QueryConfigSeries
+  | QueryConfigPie
+  | QueryConfigTable
+  | QueryConfigMultiseries
+
+// ── Payload para crear un widget ──────────────────────────────────────────────
+
+export interface CreateWidgetPayload {
+  titulo:      string
+  tipo:        WidgetTipo
+  queryConfig: QueryConfig
+  orden:       number
+}
+
+// ── Operaciones API ───────────────────────────────────────────────────────────
 
 export async function getMyWidgets(): Promise<WidgetDTO[]> {
   const res = await api.get<WidgetDTO[]>('/widgets')
@@ -84,4 +178,15 @@ export async function getMyWidgets(): Promise<WidgetDTO[]> {
 
 export async function deleteWidget(id: string): Promise<void> {
   await api.delete(`/widgets/${id}`)
+}
+
+export async function createWidget(payload: CreateWidgetPayload): Promise<WidgetDTO> {
+  const body = {
+    titulo:      payload.titulo,
+    tipoId:      TIPO_ID_MAP[payload.tipo],
+    queryConfig: JSON.stringify(payload.queryConfig),
+    orden:       payload.orden,
+  }
+  const res = await api.post<WidgetDTO>('/widgets', body)
+  return res.data
 }
