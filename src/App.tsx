@@ -7,6 +7,7 @@ import DashboardPage   from './pages/DashboardPage'
 import AdminPage       from './pages/AdminPage'
 import UsersPage       from './pages/UsersPage'
 import DatasetsAdminPage from './pages/DatasetsAdminPage'
+import ProyeccionesPage from './pages/ProyeccionesPage'
 
 export default function App() {
   return (
@@ -17,7 +18,7 @@ export default function App() {
 
           <Route element={<PrivateRoute />}>
             <Route path="/"             element={<DashboardPage />} />
-            <Route path="/proyecciones" element={<div>Proyecciones</div>} />
+            <Route path="/proyecciones" element={<ProyeccionesPage />} />
             <Route path="/reportes"     element={<div>Reportes</div>} />
             <Route path="/usuarios"     element={<div>Usuarios</div>} />
             <Route path="/datos"        element={<div>Datos</div>} />
