@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
-import { createUser, getUsers }  from '../services/userService'
+import { createUser, getUsers, updateUser } from '../services/userService'
 
 import Navbar           from '../components/common/Navbar'
 import Card             from '../components/common/Card'
@@ -11,9 +11,10 @@ import SearchInput      from '../components/common/SearchInput/SearchInput'
 import Button           from '../components/common/Button'
 import UsersTable       from '../components/features/admins/UsersTable/UsersTable'
 import CreateUserModal, { type NewUserPayload } from '../components/features/admins/CreateUserModal/CreateUserModal'
+import EditUserModal from '../components/features/admins/EditUserModal/EditUserModal'
 
 import type { User } from '../types/User'
-import type { UserResponse } from '../services/userService'
+import type { UserResponse, UpdateUserPayload } from '../services/userService'
 
 // ── Nav links ─────────────────────────────────────────────────────────────────
 
@@ -48,6 +49,7 @@ export default function UsersPage() {
   const [tab,         setTab]         = useState('activos')
   const [search,      setSearch]      = useState('')
   const [modalOpen,   setModalOpen]   = useState(false)
+  const [editTarget,  setEditTarget]  = useState<User | null>(null)
   const [users,       setUsers]       = useState<User[]>([])
 
   useEffect(() => {
@@ -60,6 +62,11 @@ export default function UsersPage() {
     await logout()
     setUser(null)
     navigate('/login', { replace: true })
+  }
+
+  const handleEdit = async (id: string, payload: UpdateUserPayload) => {
+    const updated = await updateUser(id, payload)
+    setUsers(prev => prev.map(u => u.id === id ? toUser(updated) : u))
   }
 
   const handleCreate = async (payload: NewUserPayload) => {
@@ -132,7 +139,7 @@ export default function UsersPage() {
 
           <UsersTable
             data={filtered}
-            onEdit={user => console.log('Editar', user)}
+            onEdit={user => setEditTarget(user)}
             onDelete={user => console.log('Eliminar', user)}
           />
         </Card>
@@ -143,6 +150,13 @@ export default function UsersPage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreate={handleCreate}
+      />
+
+      <EditUserModal
+        user={editTarget}
+        isOpen={editTarget !== null}
+        onClose={() => setEditTarget(null)}
+        onEdit={handleEdit}
       />
     </div>
   )

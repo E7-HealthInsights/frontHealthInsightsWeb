@@ -26,3 +26,15 @@ export async function getUsers(): Promise<UserResponse[]> {
   const res = await api.get<UserResponse[]>('/users')
   return res.data
 }
+
+export interface UpdateUserPayload {
+  name?:     string
+  lastName?: string
+  roleId?:   number
+  status?:   boolean
+}
+
+export async function updateUser(id: string, payload: UpdateUserPayload): Promise<UserResponse> {
+  const res = await api.put<UserResponse>(`/users/${id}`, payload)
+  return res.data
+}
