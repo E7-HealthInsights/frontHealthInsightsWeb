@@ -1,20 +1,20 @@
-// src/components/features/auth/__tests__/LoginCard.test.tsx
+// src/components/features/auth/LoginCard/__tests__/LoginCard.test.tsx
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import LoginCard from '../LoginCard'
+import { render, screen } from '@testing-library/react'
+import userEvent           from '@testing-library/user-event'
+import LoginCard           from '../LoginCard'
 
 // ── Helper ────────────────────────────────────────────────────────────────
 
 const renderLoginCard = (overrides = {}) => {
-  const defaultProps = {
+  const props = {
     onSubmit: jest.fn(),
     loading:  false,
     error:    '',
     ...overrides,
   }
-  render(<LoginCard {...defaultProps} />)
-  return defaultProps
+  render(<LoginCard {...props} />)
+  return props
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────
@@ -25,93 +25,71 @@ describe('LoginCard', () => {
 
   test('renderiza el campo de correo electrónico', () => {
     renderLoginCard()
-    expect(
-      screen.getByPlaceholderText(/correo@ejemplo\.com/i)
-    ).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/correo@ejemplo\.com/i)).toBeInTheDocument()
   })
 
   test('renderiza el campo de contraseña', () => {
     renderLoginCard()
-    expect(
-      screen.getByPlaceholderText(/••••••••/i)
-    ).toBeInTheDocument()
+    expect(screen.getByPlaceholderText(/••••••••/i)).toBeInTheDocument()
   })
 
   test('renderiza el botón de ingresar', () => {
     renderLoginCard()
-    expect(
-      screen.getByRole('button', { name: /ingresar/i })
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /ingresar/i })).toBeInTheDocument()
   })
 
   test('renderiza el mensaje de contraseña olvidada', () => {
     renderLoginCard()
-    expect(
-      screen.getByText(/olvidaste tu contraseña/i)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/olvidaste tu contraseña/i)).toBeInTheDocument()
   })
 
   // ── Interacciones ─────────────────────────────────────────────────────────
 
   test('actualiza el valor del campo de correo al escribir', async () => {
+    const user = userEvent.setup({ delay: null })
     renderLoginCard()
-    const emailInput = screen.getByPlaceholderText(/correo@ejemplo\.com/i)
-    await userEvent.type(emailInput, 'test@example.com')
-    expect(emailInput).toHaveValue('test@example.com')
+
+    await user.type(screen.getByPlaceholderText(/correo@ejemplo\.com/i), 'test@example.com')
+
+    expect(screen.getByPlaceholderText(/correo@ejemplo\.com/i)).toHaveValue('test@example.com')
   })
 
   test('actualiza el valor del campo de contraseña al escribir', async () => {
+    const user = userEvent.setup({ delay: null })
     renderLoginCard()
-    const passwordInput = screen.getByPlaceholderText(/••••••••/i)
-    await userEvent.type(passwordInput, 'mypassword')
-    expect(passwordInput).toHaveValue('mypassword')
+
+    await user.type(screen.getByPlaceholderText(/••••••••/i), 'mypassword')
+
+    expect(screen.getByPlaceholderText(/••••••••/i)).toHaveValue('mypassword')
   })
 
   test('llama a onSubmit con email y password al enviar el formulario', async () => {
+    const user = userEvent.setup({ delay: null })
     const { onSubmit } = renderLoginCard()
 
-    await userEvent.type(
-      screen.getByPlaceholderText(/correo@ejemplo\.com/i),
-      'santiago@example.com'
-    )
-    await userEvent.type(
-      screen.getByPlaceholderText(/••••••••/i),
-      'password123'
-    )
-    fireEvent.click(screen.getByRole('button', { name: /ingresar/i }))
+    await user.type(screen.getByPlaceholderText(/correo@ejemplo\.com/i), 'santiago@example.com')
+    await user.type(screen.getByPlaceholderText(/••••••••/i), 'password123')
+    await user.click(screen.getByRole('button', { name: /ingresar/i }))
 
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledWith(
-        'santiago@example.com',
-        'password123'
-      )
-    })
+    expect(onSubmit).toHaveBeenCalledWith('santiago@example.com', 'password123')
   })
 
   test('llama a onSubmit solo una vez por clic', async () => {
+    const user = userEvent.setup({ delay: null })
     const { onSubmit } = renderLoginCard()
 
-    await userEvent.type(
-      screen.getByPlaceholderText(/correo@ejemplo\.com/i),
-      'test@example.com'
-    )
-    await userEvent.type(
-      screen.getByPlaceholderText(/••••••••/i),
-      'pass'
-    )
-    fireEvent.click(screen.getByRole('button', { name: /ingresar/i }))
+    await user.type(screen.getByPlaceholderText(/correo@ejemplo\.com/i), 'test@example.com')
+    await user.type(screen.getByPlaceholderText(/••••••••/i), 'pass')
+    await user.click(screen.getByRole('button', { name: /ingresar/i }))
 
-    await waitFor(() => {
-      expect(onSubmit).toHaveBeenCalledTimes(1)
-    })
+    expect(onSubmit).toHaveBeenCalledTimes(1)
   })
 
   // ── Estado loading ────────────────────────────────────────────────────────
 
-  test('el botón muestra loading cuando la prop loading es true', () => {
+  test('el botón está deshabilitado cuando loading es true', () => {
     renderLoginCard({ loading: true })
-    const btn = screen.getByRole('button', { name: /ingresar/i })
-    expect(btn).toBeDisabled()
+    expect(screen.getByRole('button', { name: /ingresar/i })).toBeDisabled()
   })
 
   test('los inputs se deshabilitan cuando loading es true', () => {
@@ -120,20 +98,25 @@ describe('LoginCard', () => {
     expect(screen.getByPlaceholderText(/••••••••/i)).toBeDisabled()
   })
 
+  test('no llama a onSubmit cuando está en loading', async () => {
+    const user = userEvent.setup({ delay: null })
+    const { onSubmit } = renderLoginCard({ loading: true })
+
+    await user.click(screen.getByRole('button', { name: /ingresar/i }))
+
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
   // ── Manejo de error ───────────────────────────────────────────────────────
 
   test('muestra el mensaje de error cuando la prop error tiene contenido', () => {
     renderLoginCard({ error: 'Correo o contraseña incorrectos. Intenta de nuevo.' })
-    expect(
-      screen.getByText(/correo o contraseña incorrectos/i)
-    ).toBeInTheDocument()
+    expect(screen.getByText(/correo o contraseña incorrectos/i)).toBeInTheDocument()
   })
 
   test('no muestra error cuando la prop error está vacía', () => {
     renderLoginCard({ error: '' })
-    expect(
-      screen.queryByText(/correo o contraseña incorrectos/i)
-    ).not.toBeInTheDocument()
+    expect(screen.queryByText(/correo o contraseña incorrectos/i)).not.toBeInTheDocument()
   })
 
   // ── Accesibilidad ─────────────────────────────────────────────────────────

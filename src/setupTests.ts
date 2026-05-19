@@ -3,16 +3,18 @@
 
 import '@testing-library/jest-dom'
 
+process.env.VITE_API_URL = 'http://localhost:8080'
+
 // Al inicio de setupTests.ts
-Object.defineProperty(globalThis, 'import', {
-  value: {
-    meta: {
-      env: {
-        VITE_API_URL: 'http://localhost:8080',
-      },
-    },
-  },
-})
+// Object.defineProperty(globalThis, 'import', {
+//   value: {
+//     meta: {
+//       env: {
+//         VITE_API_URL: 'http://localhost:8080',
+//       },
+//     },
+//   },
+// })
 
 Object.defineProperty(window, 'location', {
   writable: true,

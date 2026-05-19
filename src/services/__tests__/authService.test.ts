@@ -2,7 +2,8 @@
 
 import { login, logout } from '../authService'
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
-import api from '../../lib/api'
+// import api from '../../lib/api'
+import axios from 'axios'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
@@ -12,8 +13,13 @@ jest.mock('firebase/auth', () => ({
   getAuth:                    jest.fn(),
 }))
 
-jest.mock('../../lib/api', () => ({
-  get: jest.fn(),
+jest.mock('axios', () => ({
+  __esModule: true,
+  default: {
+    get:          jest.fn(),
+    isAxiosError: jest.fn(),
+  },
+  isAxiosError: jest.fn(),   
 }))
 
 jest.mock('../../lib/firebase', () => ({
@@ -43,6 +49,7 @@ describe('authService — login', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     localStorage.clear()
+    ;(axios.isAxiosError as unknown as jest.Mock).mockReturnValue(false)
   })
 
   test('login exitoso: devuelve el perfil del usuario', async () => {
@@ -50,7 +57,7 @@ describe('authService — login', () => {
     ;(signInWithEmailAndPassword as jest.Mock).mockResolvedValue({
       user: mockFirebaseUser,
     })
-    ;(api.get as jest.Mock).mockResolvedValue({ data: mockUserProfile })
+    ;(axios.get as jest.Mock).mockResolvedValue({ data: mockUserProfile })
 
     // Act
     const result = await login('santiago@example.com', 'password123')
@@ -69,7 +76,7 @@ describe('authService — login', () => {
     ;(signInWithEmailAndPassword as jest.Mock).mockResolvedValue({
       user: mockFirebaseUser,
     })
-    ;(api.get as jest.Mock).mockResolvedValue({ data: mockUserProfile })
+    ;(axios.get as jest.Mock).mockResolvedValue({ data: mockUserProfile })
 
     // Act
     await login('santiago@example.com', 'password123')
@@ -83,14 +90,15 @@ describe('authService — login', () => {
     ;(signInWithEmailAndPassword as jest.Mock).mockResolvedValue({
       user: mockFirebaseUser,
     })
-    ;(api.get as jest.Mock).mockResolvedValue({ data: mockUserProfile })
+    ;(axios.get as jest.Mock).mockResolvedValue({ data: mockUserProfile })
 
     // Act
     await login('santiago@example.com', 'password123')
 
     // Assert
-    expect(api.get).toHaveBeenCalledWith('/auth/me', {
+    expect(axios.get).toHaveBeenCalledWith('http://localhost:8080/auth/me', {
       headers: { Authorization: 'Bearer mock-id-token' },
+      timeout: 10000,
     })
   })
 
@@ -111,8 +119,10 @@ describe('authService — login', () => {
       user: mockFirebaseUser,
     })
     const axiosError = { isAxiosError: true, response: { status: 401 } }
-    ;(api.get as jest.Mock).mockRejectedValue(axiosError)
+    ;(axios.get as jest.Mock).mockRejectedValue(axiosError)
+    ;(axios.isAxiosError as unknown as jest.Mock).mockReturnValue(true)  
     ;(signOut as jest.Mock).mockResolvedValue(undefined)
+    
 
     // Act & Assert
     await expect(login('noAccess@example.com', 'password123'))
@@ -126,7 +136,7 @@ describe('authService — login', () => {
       user: mockFirebaseUser,
     })
     const axiosError = { isAxiosError: true, response: { status: 500 } }
-    ;(api.get as jest.Mock).mockRejectedValue(axiosError)
+    ;(axios.get as jest.Mock).mockRejectedValue(axiosError)
     ;(signOut as jest.Mock).mockResolvedValue(undefined)
 
     // Act & Assert
