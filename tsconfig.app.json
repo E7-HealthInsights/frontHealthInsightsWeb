@@ -29,6 +29,7 @@
     "node_modules",
     "src/**/*.stories.tsx",
     "src/**/*.test.tsx",
+    "src/**/*.test.ts",   
     "src/__tests__"
   ]
 }
