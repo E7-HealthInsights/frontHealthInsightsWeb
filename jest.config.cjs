@@ -27,12 +27,23 @@ module.exports = {
 
   transform: {
     '^.+\\.tsx?$': ['ts-jest', {
-      tsconfig: './tsconfig.test.json',   
-      jsx: 'react-jsx',
+      tsconfig: './tsconfig.test.json',
+      jsx:      'react-jsx',
+      diagnostics: {
+        ignoreCodes: [1343, 2339],
+      },
     }],
   },
 
-
+  // Expone import.meta.env para archivos fuente que usan sintaxis de Vite.
+  // ts-jest inyecta este objeto antes de transformar cada módulo CommonJS.
+  globals: {
+    'import.meta': {
+      env: {
+        VITE_API_URL: 'http://localhost:8080',
+      },
+    },
+  },
 
   extensionsToTreatAsEsm: ['.ts', '.tsx'],
 }
