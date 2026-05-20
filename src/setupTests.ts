@@ -1,20 +1,18 @@
+/// <reference types="jest" />
 // src/setupTests.ts
 // Se ejecuta antes de cada archivo de prueba
 
 import '@testing-library/jest-dom'
+import { TextEncoder, TextDecoder } from 'util'
+
+// Polyfill: react-router-dom v7 requiere TextEncoder/TextDecoder
+// que jsdom (Jest) no incluye por defecto
+if (typeof globalThis.TextEncoder === 'undefined') {
+  globalThis.TextEncoder = TextEncoder as typeof globalThis.TextEncoder
+  globalThis.TextDecoder = TextDecoder as typeof globalThis.TextDecoder
+}
 
 process.env.VITE_API_URL = 'http://localhost:8080'
-
-// Al inicio de setupTests.ts
-// Object.defineProperty(globalThis, 'import', {
-//   value: {
-//     meta: {
-//       env: {
-//         VITE_API_URL: 'http://localhost:8080',
-//       },
-//     },
-//   },
-// })
 
 Object.defineProperty(window, 'location', {
   writable: true,
@@ -38,7 +36,7 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock de ResizeObserver (Recharts lo usa)
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
-  observe:   jest.fn(),
-  unobserve: jest.fn(),
+  observe:    jest.fn(),
+  unobserve:  jest.fn(),
   disconnect: jest.fn(),
 }))
