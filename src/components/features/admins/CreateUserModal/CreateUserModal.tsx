@@ -149,7 +149,7 @@ export default function CreateUserModal({ isOpen, onClose, onCreate }: CreateUse
         {/* Contraseña */}
         <InputField
           label="Contraseña"
-          placeholder="Mínimo 6 caracteres"
+          placeholder="Mínimo 8 caracteres"
           type="password"
           value={form.password}
           onChange={set('password')}

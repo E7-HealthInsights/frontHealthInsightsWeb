@@ -2,11 +2,13 @@ import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import axios from 'axios'
 import { auth } from '../lib/firebase'
 
-const API_URL =
-  process.env.VITE_API_URL ?? 'http://localhost:8080'
+// const API_URL =
+//   process.env.VITE_API_URL ?? 'http://localhost:8080'
 
 // const API_URL = (globalThis as Record<string, unknown>).importMetaEnv?.VITE_API_URL as string
 //   ?? 'http://localhost:8080'
+
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
 export interface UserProfile {
   id:       string
