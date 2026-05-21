@@ -10,7 +10,7 @@ interface ConfirmActionModalProps {
   /** Describe la acción: 'eliminar el usuario "Carlos Méndez"' */
   accionLabel: string
   /** Callback al confirmar — recibe la justificación ingresada */
-  onConfirm:   (justificacion: string) => void | Promise<void>
+  onConfirm:   (justification: string) => void | Promise<void>
   /** Carga mientras se procesa la acción */
   loading?:    boolean
 }
@@ -27,22 +27,22 @@ export default function ConfirmActionModal({
   loading = false,
 }: ConfirmActionModalProps) {
   const [step, setStep]                   = useState<Step>('confirm')
-  const [justificacion, setJustificacion] = useState('')
+  const [justification, setJustification] = useState('')
   const [error, setError]                 = useState('')
 
   const handleClose = () => {
     setStep('confirm')
-    setJustificacion('')
+    setJustification('')
     setError('')
     onClose()
   }
 
   const handleConfirmar = async () => {
-    if (!justificacion.trim()) {
+    if (!justification.trim()) {
       setError('La justificación es obligatoria.')
       return
     }
-    await onConfirm(justificacion.trim())
+    await onConfirm(justification.trim())
     handleClose()
   }
 
@@ -103,9 +103,9 @@ export default function ConfirmActionModal({
         </label>
         <textarea
           rows={3}
-          value={justificacion}
+          value={justification}
           onChange={e => {
-            setJustificacion(e.target.value)
+            setJustification(e.target.value)
             if (e.target.value.trim()) setError('')
           }}
           placeholder="Ej: Solicitud aprobada por director de área."
