@@ -38,3 +38,7 @@ export async function updateUser(id: string, payload: UpdateUserPayload): Promis
   const res = await api.put<UserResponse>(`/users/${id}`, payload)
   return res.data
 }
+
+export async function deleteUser(id: string): Promise<void> {
+  await api.patch(`/users/${id}`)
+}

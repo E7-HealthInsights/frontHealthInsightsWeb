@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
-import { createUser, getUsers, updateUser } from '../services/userService'
+import { createUser, getUsers, updateUser, deleteUser } from '../services/userService'
 
 import Navbar           from '../components/common/Navbar'
 import Card             from '../components/common/Card'
@@ -11,7 +11,8 @@ import SearchInput      from '../components/common/SearchInput/SearchInput'
 import Button           from '../components/common/Button'
 import UsersTable       from '../components/features/admins/UsersTable/UsersTable'
 import CreateUserModal, { type NewUserPayload } from '../components/features/admins/CreateUserModal/CreateUserModal'
-import EditUserModal from '../components/features/admins/EditUserModal/EditUserModal'
+import EditUserModal        from '../components/features/admins/EditUserModal/EditUserModal'
+import ConfirmActionModal  from '../components/features/admins/ConfirmActionModal/ConfirmActionModal'
 
 import type { User } from '../types/User'
 import type { UserResponse, UpdateUserPayload } from '../services/userService'
@@ -49,8 +50,10 @@ export default function UsersPage() {
   const [tab,         setTab]         = useState('activos')
   const [search,      setSearch]      = useState('')
   const [modalOpen,   setModalOpen]   = useState(false)
-  const [editTarget,  setEditTarget]  = useState<User | null>(null)
-  const [users,       setUsers]       = useState<User[]>([])
+  const [editTarget,    setEditTarget]    = useState<User | null>(null)
+  const [deleteTarget,  setDeleteTarget]  = useState<User | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [users,         setUsers]         = useState<User[]>([])
 
   useEffect(() => {
     getUsers()
@@ -62,6 +65,18 @@ export default function UsersPage() {
     await logout()
     setUser(null)
     navigate('/login', { replace: true })
+  }
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return
+    setDeleteLoading(true)
+    try {
+      await deleteUser(deleteTarget.id)
+      setUsers(prev => prev.filter(u => u.id !== deleteTarget.id))
+      setDeleteTarget(null)
+    } finally {
+      setDeleteLoading(false)
+    }
   }
 
   const handleEdit = async (id: string, payload: UpdateUserPayload) => {
@@ -140,7 +155,7 @@ export default function UsersPage() {
           <UsersTable
             data={filtered}
             onEdit={user => setEditTarget(user)}
-            onDelete={user => console.log('Eliminar', user)}
+            onDelete={user => setDeleteTarget(user)}
           />
         </Card>
 
@@ -157,6 +172,14 @@ export default function UsersPage() {
         isOpen={editTarget !== null}
         onClose={() => setEditTarget(null)}
         onEdit={handleEdit}
+      />
+
+      <ConfirmActionModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        accionLabel={deleteTarget ? `eliminar al usuario "${deleteTarget.nombre} ${deleteTarget.apellido}"` : ''}
+        onConfirm={handleDelete}
+        loading={deleteLoading}
       />
     </div>
   )
