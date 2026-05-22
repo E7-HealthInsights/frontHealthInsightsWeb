@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import Modal      from '../../../common/Modal/Modal'
-import InputField from '../../../common/InputField/InputField'
-import Dropdown   from '../../../common/Dropdown/Dropdown'
-import Button     from '../../../common/Button/Button'
+import Modal             from '../../../common/Modal/Modal'
+import InputField        from '../../../common/InputField/InputField'
+import Dropdown          from '../../../common/Dropdown/Dropdown'
+import Button            from '../../../common/Button/Button'
+import ConfirmActionModal from '../ConfirmActionModal/ConfirmActionModal'
 import type { User } from '../../../../types/User'
 import type { UpdateUserPayload } from '../../../../services/userService'
 
@@ -43,12 +44,14 @@ const ESTATUS_OPTIONS = [
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function EditUserModal({ user, isOpen, onClose, onEdit }: EditUserModalProps) {
-  const [nombre,     setNombre]     = useState('')
-  const [apellido,   setApellido]   = useState('')
-  const [rol,        setRol]        = useState('')
-  const [estatus,    setEstatus]    = useState<User['estatus']>('Activo')
-  const [submitting, setSubmitting] = useState(false)
-  const [apiError,   setApiError]   = useState<string | null>(null)
+  const [nombre,       setNombre]       = useState('')
+  const [apellido,     setApellido]     = useState('')
+  const [rol,          setRol]          = useState('')
+  const [estatus,      setEstatus]      = useState<User['estatus']>('Activo')
+  const [submitting,   setSubmitting]   = useState(false)
+  const [apiError,     setApiError]     = useState<string | null>(null)
+  const [confirmOpen,  setConfirmOpen]  = useState(false)
+  const [pendingPayload, setPendingPayload] = useState<UpdateUserPayload | null>(null)
 
   useEffect(() => {
     if (user) {
@@ -62,32 +65,37 @@ export default function EditUserModal({ user, isOpen, onClose, onEdit }: EditUse
 
   const handleClose = () => {
     setApiError(null)
+    setPendingPayload(null)
     onClose()
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!user) return
-    setSubmitting(true)
-    setApiError(null)
 
     const payload: UpdateUserPayload = {}
-
     const trimNombre   = nombre.trim()
     const trimApellido = apellido.trim()
 
     if (trimNombre   && trimNombre   !== user.nombre)   payload.name     = trimNombre
     if (trimApellido && trimApellido !== user.apellido) payload.lastName = trimApellido
-    if (rol && ROL_LABEL[rol] !== user.rol)             payload.roleId = Number(rol)
+    if (rol && ROL_LABEL[rol] !== user.rol)             payload.roleId   = Number(rol)
     if (estatus !== user.estatus)                       payload.status   = estatus === 'Activo'
 
     if (Object.keys(payload).length === 0) {
       handleClose()
-      setSubmitting(false)
       return
     }
 
+    setPendingPayload(payload)
+    setConfirmOpen(true)
+  }
+
+  const handleConfirm = async (justification: string) => {
+    if (!user || !pendingPayload) return
+    setSubmitting(true)
+    setApiError(null)
     try {
-      await onEdit(user.id, payload)
+      await onEdit(user.id, { ...pendingPayload, justification })
       handleClose()
     } catch (err: any) {
       setApiError(err?.response?.data?.message ?? 'No se pudo actualizar el usuario')
@@ -151,6 +159,16 @@ export default function EditUserModal({ user, isOpen, onClose, onEdit }: EditUse
         </div>
 
       </div>
+      <ConfirmActionModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        accionLabel={`editar al usuario "${user?.nombre} ${user?.apellido}"`}
+        loading={submitting}
+        onConfirm={async (justification) => {
+          setConfirmOpen(false)
+          await handleConfirm(justification)
+        }}
+      />
     </Modal>
   )
 }

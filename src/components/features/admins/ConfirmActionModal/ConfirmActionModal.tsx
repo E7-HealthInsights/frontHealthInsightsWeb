@@ -198,9 +198,9 @@ export default function ConfirmActionModal({
             </label>
             <textarea
               rows={3}
-              value={justificacion}
+              value={justification}
               onChange={e => {
-                setJustificacion(e.target.value)
+                setJustification(e.target.value)
                 if (e.target.value.trim()) setError('')
               }}
               placeholder="Ej: Solicitud aprobada por director de área."

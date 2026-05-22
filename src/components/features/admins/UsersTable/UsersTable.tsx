@@ -39,8 +39,10 @@ const buildColumns = (
     width: 'w-24',
     render: row => (
       <div className="flex gap-1">
-        <EditActionButton   onClick={() => onEdit?.(row)}   />
-        <DeleteActionButton onClick={() => onDelete?.(row)} />
+        <EditActionButton onClick={() => onEdit?.(row)} />
+        {row.estatus === 'Activo' && (
+          <DeleteActionButton onClick={() => onDelete?.(row)} />
+        )}
       </div>
     ),
   },

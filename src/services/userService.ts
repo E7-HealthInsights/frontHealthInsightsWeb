@@ -1,11 +1,17 @@
 import api from '../lib/api'
 
 export interface CreateUserPayload {
-  name:     string
-  lastName: string
-  email:    string
-  password: string
-  roleId:   number
+  name:          string
+  lastName:      string
+  email:         string
+  password:      string
+  roleId:        number
+  justification: string
+}
+
+export interface UserRoleResponse {
+  id:   number
+  name: string
 }
 
 export interface UserResponse {
@@ -13,7 +19,7 @@ export interface UserResponse {
   name:     string
   lastName: string
   email:    string
-  role:     string
+  role:     UserRoleResponse | string
   status:   boolean
 }
 
@@ -28,10 +34,11 @@ export async function getUsers(): Promise<UserResponse[]> {
 }
 
 export interface UpdateUserPayload {
-  name?:     string
-  lastName?: string
-  roleId?:   number
-  status?:   boolean
+  name?:          string
+  lastName?:      string
+  roleId?:        number
+  status?:        boolean
+  justification?: string
 }
 
 export async function updateUser(id: string, payload: UpdateUserPayload): Promise<UserResponse> {
@@ -39,6 +46,6 @@ export async function updateUser(id: string, payload: UpdateUserPayload): Promis
   return res.data
 }
 
-export async function deleteUser(id: string): Promise<void> {
-  await api.patch(`/users/${id}`)
+export async function deleteUser(id: string, justification: string): Promise<void> {
+  await api.patch(`/users/${id}`, { justification })
 }

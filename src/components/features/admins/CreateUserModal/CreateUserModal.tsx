@@ -1,20 +1,22 @@
 import { useState } from 'react'
-import Modal      from '../../../common/Modal/Modal'
-import InputField from '../../../common/InputField/InputField'
-import Dropdown   from '../../../common/Dropdown/Dropdown'
-import Button     from '../../../common/Button/Button'
+import Modal             from '../../../common/Modal/Modal'
+import InputField        from '../../../common/InputField/InputField'
+import Dropdown          from '../../../common/Dropdown/Dropdown'
+import Button            from '../../../common/Button/Button'
+import ConfirmActionModal from '../ConfirmActionModal/ConfirmActionModal'
 import type { User } from '../../../../types/User'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface NewUserPayload {
-  nombre:   string
-  apellido: string
-  correo:   string
-  password: string
-  roleId:   number
-  rol:      string
-  estatus:  User['estatus']
+  nombre:        string
+  apellido:      string
+  correo:        string
+  password:      string
+  roleId:        number
+  rol:           string
+  estatus:       User['estatus']
+  justification: string
 }
 
 interface CreateUserModalProps {
@@ -53,10 +55,11 @@ const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CreateUserModal({ isOpen, onClose, onCreate }: CreateUserModalProps) {
-  const [form,      setForm]      = useState(EMPTY)
-  const [errors,    setErrors]    = useState<Partial<typeof EMPTY>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [apiError,  setApiError]  = useState<string | null>(null)
+  const [form,         setForm]         = useState(EMPTY)
+  const [errors,       setErrors]       = useState<Partial<typeof EMPTY>>({})
+  const [submitting,   setSubmitting]   = useState(false)
+  const [apiError,     setApiError]     = useState<string | null>(null)
+  const [confirmOpen,  setConfirmOpen]  = useState(false)
 
   const set = (field: keyof typeof EMPTY) => (val: string) => {
     setForm(prev => ({ ...prev, [field]: val }))
@@ -79,19 +82,24 @@ export default function CreateUserModal({ isOpen, onClose, onCreate }: CreateUse
     return Object.keys(e).length === 0
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (!validate()) return
+    setConfirmOpen(true)
+  }
+
+  const handleConfirm = async (justification: string) => {
     setSubmitting(true)
     setApiError(null)
     try {
       await onCreate({
-        nombre:   form.nombre.trim(),
-        apellido: form.apellido.trim(),
-        correo:   form.correo.trim(),
-        password: form.password,
-        roleId:   Number(form.rol),
-        rol:      ROL_LABEL[form.rol] ?? form.rol,
-        estatus:  form.estatus as User['estatus'],
+        nombre:        form.nombre.trim(),
+        apellido:      form.apellido.trim(),
+        correo:        form.correo.trim(),
+        password:      form.password,
+        roleId:        Number(form.rol),
+        rol:           ROL_LABEL[form.rol] ?? form.rol,
+        estatus:       form.estatus as User['estatus'],
+        justification,
       })
       handleClose()
     } catch (err: any) {
@@ -189,6 +197,16 @@ export default function CreateUserModal({ isOpen, onClose, onCreate }: CreateUse
         </div>
 
       </div>
+      <ConfirmActionModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        accionLabel={`crear al usuario "${form.nombre.trim()} ${form.apellido.trim()}"`}
+        loading={submitting}
+        onConfirm={async (justification) => {
+          setConfirmOpen(false)
+          await handleConfirm(justification)
+        }}
+      />
     </Modal>
   )
 }

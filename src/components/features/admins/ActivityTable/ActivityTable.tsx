@@ -4,11 +4,11 @@ import ActionBadge from '../Badges/ActionBadge/ActionBadge'
 
 
 export type ActivityRow = {
-  id:        number
-  admin:     string          // nombre del admin que ejecutó la acción
-  accion:    ActivityAction
-  detalle:   string          // justificación ingresada por el admin
-  timestamp: string         
+  id:        string
+  admin:     string
+  accion:    string
+  detalle:   string
+  timestamp: string
 }
 
 interface ActivityTableProps {
@@ -28,32 +28,37 @@ const TimestampCell = ({ timestamp }: { timestamp: string }) => (
 )
 
 const DetalleCell = ({ detalle }: { detalle: string }) => (
-  <span className="text-sm text-[var(--color-hi-text-sub)] italic">
+  <span
+    className="block text-sm text-[var(--color-hi-text-sub)] italic truncate"
+    title={detalle}
+  >
     "{detalle}"
   </span>
 )
 
 const columns: Column<ActivityRow>[] = [
   {
+    key:    'accion',
+    header: 'Acción',
+    width:  'w-[30%]',
+    render: row => <ActionBadge action={row.accion} />,
+  },
+  {
     key:    'timestamp',
     header: 'Fecha y hora',
-    width:  'w-40',
+    width:  'w-[18%]',
     render: row => <TimestampCell timestamp={row.timestamp} />,
   },
   {
     key:    'admin',
     header: 'Admin',
-    width:  'w-36',
-  },
-  {
-    key:    'accion',
-    header: 'Acción',
-    width:  'w-44',
-    render: row => <ActionBadge action={row.accion} />,
+    width:  'w-[17%]',
+    render: row => <span className="whitespace-nowrap">{row.admin}</span>,
   },
   {
     key:    'detalle',
     header: 'Justificación',
+    width:  'w-[35%]',
     render: row => <DetalleCell detalle={row.detalle} />,
   },
 ]
@@ -66,6 +71,7 @@ export default function ActivityTable({ data }: ActivityTableProps) {
       columns={columns}
       data={data}
       emptyText="No hay actividad registrada aún."
+      fixed
     />
   )
 }
