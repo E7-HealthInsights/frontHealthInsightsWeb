@@ -37,7 +37,7 @@ const toUser = (u: UserResponse): User => ({
   nombre:   u.name,
   apellido: u.lastName,
   correo:   u.email,
-  rol:      u.role,
+  rol:      typeof u.role === 'string' ? u.role : (u.role?.name ?? ''),
   estatus:  u.status ? 'Activo' : 'Inactivo',
 })
 
@@ -67,12 +67,12 @@ export default function UsersPage() {
     navigate('/login', { replace: true })
   }
 
-  const handleDelete = async () => {
+  const handleDelete = async (justification: string) => {
     if (!deleteTarget) return
     setDeleteLoading(true)
     try {
-      await deleteUser(deleteTarget.id)
-      setUsers(prev => prev.filter(u => u.id !== deleteTarget.id))
+      await deleteUser(deleteTarget.id, justification)
+      setUsers(prev => prev.map(u => u.id === deleteTarget.id ? { ...u, estatus: 'Inactivo' as const } : u))
       setDeleteTarget(null)
     } finally {
       setDeleteLoading(false)
@@ -86,11 +86,12 @@ export default function UsersPage() {
 
   const handleCreate = async (payload: NewUserPayload) => {
     const created = await createUser({
-      name:     payload.nombre,
-      lastName: payload.apellido,
-      email:    payload.correo,
-      password: payload.password,
-      roleId:   payload.roleId,
+      name:          payload.nombre,
+      lastName:      payload.apellido,
+      email:         payload.correo,
+      password:      payload.password,
+      roleId:        payload.roleId,
+      justification: payload.justification,
     })
     setUsers(prev => [...prev, toUser(created)])
   }

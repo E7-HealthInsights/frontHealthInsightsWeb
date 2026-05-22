@@ -1,12 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
+
+import { getActividad } from '../services/activityService'
+import type { LogActividadResponse } from '../services/activityService'
 
 import Navbar               from '../components/common/Navbar'
 import Card                 from '../components/common/Card'
 import SearchInput          from '../components/common/SearchInput/SearchInput'
 import ActivityTable, { type ActivityRow } from '../components/features/admins/ActivityTable/ActivityTable'
+import Pagination           from '../components/common/Pagination/Pagination'
 import GenerateReportButton from '../components/features/reports/GenerateReportButton/GenerateReportButton'
 
 // ── Nav links ─────────────────────────────────────────────────────────────────
@@ -17,16 +21,15 @@ const NAV_LINKS = [
   { key: 'datos',    label: 'Datos',    path: '/admin/datos'    },
 ]
 
-// ── Datos mock ────────────────────────────────────────────────────────────────
+// ── Mapper ────────────────────────────────────────────────────────────────────
 
-const MOCK_ACTIVITY: ActivityRow[] = [
-  { id: 1, admin: 'María López',  accion: 'Usuario creado',    detalle: 'Alta de nuevo usuario operativo',  timestamp: '2026-04-22 09:14' },
-  { id: 2, admin: 'Carlos Ruiz',  accion: 'Dataset editado',   detalle: 'Corrección de valores atípicos',   timestamp: '2026-04-22 10:02' },
-  { id: 3, admin: 'María López',  accion: 'Usuario eliminado', detalle: 'Cuenta duplicada eliminada',       timestamp: '2026-04-21 16:45' },
-  { id: 4, admin: 'Ana Martínez', accion: 'Dataset creado',    detalle: 'Carga inicial de datos 2026',      timestamp: '2026-04-21 14:30' },
-  { id: 5, admin: 'Carlos Ruiz',  accion: 'Usuario editado',   detalle: 'Cambio de rol a supervisor',       timestamp: '2026-04-20 11:55' },
-  { id: 6, admin: 'Ana Martínez', accion: 'Dataset eliminado', detalle: 'Dataset desactualizado removido',  timestamp: '2026-04-19 08:22' },
-]
+const toActivityRow = (log: LogActividadResponse): ActivityRow => ({
+  id:        log.id,
+  admin:     log.adminNombre ?? '—',
+  accion:    log.accion,
+  detalle:   log.detalle ?? '',
+  timestamp: log.fecha.replace('T', ' ').slice(0, 16),
+})
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -34,7 +37,17 @@ export default function AdminPage() {
   const { user, setUser } = useAuth()
   const navigate          = useNavigate()
 
-  const [search, setSearch] = useState('')
+  const PAGE_SIZE = 10
+
+  const [search,   setSearch]   = useState('')
+  const [activity, setActivity] = useState<ActivityRow[]>([])
+  const [page,     setPage]     = useState(1)
+
+  useEffect(() => {
+    getActividad()
+      .then(list => setActivity(list.map(toActivityRow)))
+      .catch(err => console.error('Error al cargar actividad', err))
+  }, [])
 
   const handleLogout = async () => {
     await logout()
@@ -42,12 +55,20 @@ export default function AdminPage() {
     navigate('/login', { replace: true })
   }
 
-  const filtered = MOCK_ACTIVITY.filter(row =>
+  const filtered = activity.filter(row =>
     search === '' ||
-    row.admin.toLowerCase().includes(search.toLowerCase())   ||
-    row.accion.toLowerCase().includes(search.toLowerCase())  ||
+    row.admin.toLowerCase().includes(search.toLowerCase())  ||
+    row.accion.toLowerCase().includes(search.toLowerCase()) ||
     row.detalle.toLowerCase().includes(search.toLowerCase())
   )
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const handleSearch = (value: string) => {
+    setSearch(value)
+    setPage(1)
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-hi-bg)]">
@@ -74,14 +95,19 @@ export default function AdminPage() {
         <Card title="Actividad reciente">
           <SearchInput
             value={search}
-            onChange={setSearch}
+            onChange={handleSearch}
             placeholder="Buscar actividad…"
             className="mb-4"
           />
 
-          <ActivityTable data={filtered} />
+          <ActivityTable data={paginated} />
 
-          <div className="flex justify-end mt-6">
+          <div className="flex items-center justify-between mt-6">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              onChange={setPage}
+            />
             <GenerateReportButton />
           </div>
         </Card>
