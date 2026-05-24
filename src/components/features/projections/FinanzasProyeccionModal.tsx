@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
@@ -6,8 +6,9 @@ import {
 import Modal  from '../../common/Modal/Modal'
 import Button from '../../common/Button/Button'
 import type { FinanzasResultado, RubroFinanzas } from '../../../types/FinanzasProyeccion'
-import { calcularProyeccionFinanzas } from '../../../services/proyeccionService'
 import type { Proyeccion } from '../../../types/Proyeccion'
+import { simularFinanzas, type SimulacionFinanzasResponse } from '../../../services/proyeccionService'
+import { debounce } from 'lodash'
 
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -50,6 +51,10 @@ const RUBROS: { key: RubroFinanzas; label: string; desc: string; color: string }
 ]
 
 const PERIODOS = [2030, 2035, 2040, 2050]
+
+const DEFAULT_DISTRIBUCION: Record<RubroFinanzas, number> = {
+  NUTRICION: 25, MEDICAMENTOS: 25, DETECCION: 25, ATENCION: 25,
+}
 
 const AXIS_LABEL_STYLE = { fontSize: 10, fill: 'var(--color-hi-text-sub)' }
 
@@ -100,6 +105,19 @@ function balanceDistribucion(
   return next
 }
 
+function ChartSkeleton() {
+  return (
+    <div className="w-full h-[180px] flex items-center justify-center
+      rounded-[var(--radius-md)] bg-[var(--color-hi-bg)]">
+      <svg className="animate-spin w-5 h-5 text-[var(--color-hi-primary)]"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <circle cx="12" cy="12" r="10" strokeOpacity="0.25"/>
+        <path d="M12 2a10 10 0 0 1 10 10"/>
+      </svg>
+    </div>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function FinanzasProyeccionModal({
@@ -113,65 +131,126 @@ export default function FinanzasProyeccionModal({
   const [descripcion,  setDescripcion]  = useState('')
   const [presupuesto,  setPresupuesto]  = useState(2_000)    // MXN M/año
   const [periodoFin,   setPeriodoFin]   = useState(2040)
-  const [distribucion, setDistribucion] = useState<Record<RubroFinanzas, number>>({
-    NUTRICION:    25,
-    MEDICAMENTOS: 25,
-    DETECCION:    25,
-    ATENCION:     25,
-  })
+  const [distribucion, setDistribucion] = useState<Record<RubroFinanzas, number>>(DEFAULT_DISTRIBUCION)
   const [error, setError] = useState('')
+
+  // ── Estado de simulación (viene del backend) ──────────────────────────────
+  const [simulacion,  setSimulacion]  = useState<SimulacionFinanzasResponse | null>(
+    esEdicion ? (proyeccionToEdit!.resultado as FinanzasResultado) as unknown as SimulacionFinanzasResponse : null
+  )
+  const [simLoading, setSimLoading] = useState(false)
+ 
+  // ── Debounce ref ──────────────────────────────────────────────────────────
+  const debouncedRef = useRef(
+    debounce(async (params: Parameters<typeof simularFinanzas>[0]) => {
+      setSimLoading(true)
+      try {
+        const data = await simularFinanzas(params)
+        setSimulacion(data)
+      } catch (err) {
+        console.error('[FinanzasModal] simularFinanzas error:', err)
+      } finally {
+        setSimLoading(false)
+      }
+    }, 400)
+  )
+ 
+  // Cancela debounce al desmontar
+  useEffect(() => () => debouncedRef.current.cancel(), [])
 
   // Pre-llena cuando cambia proyeccionToEdit
   useEffect(() => {
-    if (proyeccionToEdit && esEdicion) {
-      const r = proyeccionToEdit.resultado as FinanzasResultado
-      setTitulo(proyeccionToEdit.titulo)
-      setDescripcion(proyeccionToEdit.descripcion ?? '')
-      setPresupuesto(r.params.presupuestoTotalMillones)
-      setPeriodoFin(r.params.periodoFin)
-      setDistribucion(r.params.distribucion)
+    if (!isOpen) return
+    if (paramsPrev && esEdicion) {
+      setTitulo(proyeccionToEdit!.titulo)
+      setDescripcion(proyeccionToEdit!.descripcion ?? '')
+      setPresupuesto(paramsPrev.presupuestoTotalMillones)
+      setPeriodoFin(paramsPrev.periodoFin)
+      setDistribucion(paramsPrev.distribucion)
+      // Usa el resultado almacenado — sin llamar al API
+      setSimulacion((proyeccionToEdit!.resultado as FinanzasResultado) as unknown as SimulacionFinanzasResponse)
     } else {
       reset()
+      // Primera simulación con valores default
+      debouncedRef.current({
+        presupuesto: 2_000,
+        nutricion: 25, medicamentos: 25, deteccion: 25, atencion: 25,
+        hasta: 2040,
+      })
     }
-  }, [proyeccionToEdit, isOpen])
+  }, [isOpen])
 
-  // Recalcula en tiempo real
-  const resultado = useMemo(() => calcularProyeccionFinanzas({
-    presupuestoTotalMillones: presupuesto,
-    distribucion,
-    periodoInicio: 2025,
-    periodoFin,
-  }), [presupuesto, periodoFin, distribucion])
-
-  const { kpis, puntos } = resultado
-
-  const chartData = puntos.map(p => ({
-    año:               String(p.año),
+  // ── Llama al API con debounce cuando cambian los sliders ──────────────────
+  const triggerSimulacion = useCallback((
+    pres: number,
+    dist: Record<RubroFinanzas, number>,
+    hasta: number
+  ) => {
+    debouncedRef.current({
+      presupuesto:  pres,
+      nutricion:    dist.NUTRICION,
+      medicamentos: dist.MEDICAMENTOS,
+      deteccion:    dist.DETECCION,
+      atencion:     dist.ATENCION,
+      hasta,
+    })
+  }, [])
+ 
+  const handlePresupuesto = (val: number) => {
+    setPresupuesto(val)
+    triggerSimulacion(val, distribucion, periodoFin)
+  }
+ 
+  const handlePeriodo = (val: number) => {
+    setPeriodoFin(val)
+    triggerSimulacion(presupuesto, distribucion, val)
+  }
+ 
+  const handleRubro = (rubro: RubroFinanzas, val: number) => {
+    const next = balanceDistribucion(distribucion, rubro, val)
+    setDistribucion(next)
+    triggerSimulacion(presupuesto, next, periodoFin)
+  }
+ 
+  // ── Datos para la gráfica ─────────────────────────────────────────────────
+  const chartData = simulacion?.puntos.map(p => ({
+    año: String(p.año),
     'Sin intervención': p.sinIntervencion,
     'Con intervención': p.conIntervencion,
-  }))
-
-  const handleRubroChange = (rubro: RubroFinanzas, value: number) => {
-    setDistribucion(prev => balanceDistribucion(prev, rubro, value))
-  }
-
-  const sumaDistribucion = Object.values(distribucion).reduce((s, v) => s + v, 0)
-
-  const reset = () => {
-    setTitulo(''); setDescripcion('')
-    setPresupuesto(2_000); setPeriodoFin(2040)
-    setDistribucion({ NUTRICION: 25, MEDICAMENTOS: 25, DETECCION: 25, ATENCION: 25 })
-    setError('')
-  }
+  })) ?? []
+ 
+  const kpis = simulacion?.kpis
 
   const handleSave = async () => {
     if (!titulo.trim()) { setError('El título es obligatorio.'); return }
+    if (!simulacion)    { setError('Espera a que termine la simulación.'); return }
     setError('')
+    const resultado: FinanzasResultado = {
+      tipo:   'FINANZAS',
+      params: {
+        presupuestoTotalMillones: presupuesto,
+        distribucion,
+        periodoInicio: 2025,
+        periodoFin,
+      },
+      puntos: simulacion.puntos,
+      kpis:   simulacion.kpis as FinanzasResultado['kpis'],
+    }
+ 
     await onSave(titulo.trim(), descripcion.trim(), resultado)
-    reset()
+    if (!esEdicion) reset()
   }
 
-  const handleClose = () => { reset(); onClose() }
+  const reset = () => {
+    setTitulo(''); setDescripcion(''); setError('')
+    setPresupuesto(2_000); setPeriodoFin(2040)
+    setDistribucion(DEFAULT_DISTRIBUCION)
+    setSimulacion(null)
+  }
+
+  const handleClose = () => { if (!esEdicion) reset(); onClose() }
+ 
+  const sumaDistribucion = Object.values(distribucion).reduce((s, v) => s + v, 0)
 
   return (
     <Modal
@@ -229,7 +308,7 @@ export default function FinanzasProyeccionModal({
             </div>
             <input type="range" min={500} max={10_000} step={500}
               value={presupuesto}
-              onChange={e => setPresupuesto(Number(e.target.value))}
+              onChange={e => handlePresupuesto(Number(e.target.value))}
               className="w-full accent-[var(--color-hi-primary)]"
             />
             <div className="flex justify-between text-[10px] text-[var(--color-hi-text-hint)] mt-0.5">
@@ -245,7 +324,7 @@ export default function FinanzasProyeccionModal({
               {PERIODOS.map(p => (
                 <button
                   key={p}
-                  onClick={() => setPeriodoFin(p)}
+                  onClick={() => handlePeriodo(p)}
                   className={`flex-1 py-2 text-xs rounded-[var(--radius-md)] border
                     font-medium transition-colors cursor-pointer
                     ${periodoFin === p
@@ -310,7 +389,7 @@ export default function FinanzasProyeccionModal({
                 <input
                   type="range" min={0} max={100} step={5}
                   value={distribucion[r.key]}
-                  onChange={e => handleRubroChange(r.key, Number(e.target.value))}
+                  onChange={e => handleRubro(r.key, Number(e.target.value))}
                   style={{ accentColor: r.color }}
                   className="w-full"
                 />
@@ -325,81 +404,87 @@ export default function FinanzasProyeccionModal({
           <p className="text-xs font-semibold text-[var(--color-hi-text-sub)] mb-2">
             Vista previa — Prevalencia de diabetes en México (%)
           </p>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={chartData}
-              margin={{ top: 16, right: 12, left: 8, bottom: 24 }}>
-              <CartesianGrid strokeDasharray="3 3"
-                stroke="var(--color-hi-border)" vertical={false} />
-              <XAxis dataKey="año"
-                tick={{ fontSize: 10, fill: 'var(--color-hi-text-sub)' }}
-                axisLine={false} tickLine={false}
-                interval="preserveStartEnd"
-                label={{ value: 'Año', position: 'insideBottom', offset: -12, style: AXIS_LABEL_STYLE }}
-              />
-              <YAxis domain={[14, 'auto']}
-                tick={{ fontSize: 10, fill: 'var(--color-hi-text-sub)' }}
-                axisLine={false} tickLine={false}
-                label={{ value: '% Prevalencia', angle: -90, position: 'insideLeft', offset: 4, style: AXIS_LABEL_STYLE }}
-              />
-              <Tooltip contentStyle={{
-                background: 'var(--color-hi-surface)',
-                border: '1px solid var(--color-hi-border)',
-                borderRadius: 6, fontSize: 11,
-              }} />
-              <Legend verticalAlign="top" align="center"
-                wrapperStyle={{ fontSize: 10 }} iconSize={8} />
-              <Line dataKey="Sin intervención"
-                stroke="#94A3B8" strokeWidth={1.5} strokeDasharray="4 3"
-                dot={false} activeDot={{ r: 4 }} />
-              <Line dataKey="Con intervención"
-                stroke="var(--color-hi-primary)" strokeWidth={2}
-                dot={false} activeDot={{ r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
+          {simLoading || !simulacion ? (
+            <ChartSkeleton />
+          ) : (
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={chartData}
+                margin={{ top: 16, right: 12, left: 8, bottom: 24 }}>
+                <CartesianGrid strokeDasharray="3 3"
+                  stroke="var(--color-hi-border)" vertical={false} />
+                <XAxis dataKey="año"
+                  tick={{ fontSize: 10, fill: 'var(--color-hi-text-sub)' }}
+                  axisLine={false} tickLine={false}
+                  interval="preserveStartEnd"
+                  label={{ value: 'Año', position: 'insideBottom', offset: -12, style: AXIS_LABEL_STYLE }}
+                />
+                <YAxis domain={[14, 'auto']}
+                  tick={{ fontSize: 10, fill: 'var(--color-hi-text-sub)' }}
+                  axisLine={false} tickLine={false}
+                  label={{ value: '% Prevalencia', angle: -90, position: 'insideLeft', offset: 4, style: AXIS_LABEL_STYLE }}
+                />
+                <Tooltip contentStyle={{
+                  background: 'var(--color-hi-surface)',
+                  border: '1px solid var(--color-hi-border)',
+                  borderRadius: 6, fontSize: 11,
+                }} />
+                <Legend verticalAlign="top" align="center"
+                  wrapperStyle={{ fontSize: 10 }} iconSize={8} />
+                <Line dataKey="Sin intervención"
+                  stroke="#94A3B8" strokeWidth={1.5} strokeDasharray="4 3"
+                  dot={false} activeDot={{ r: 4 }} />
+                <Line dataKey="Con intervención"
+                  stroke="var(--color-hi-primary)" strokeWidth={2}
+                  dot={false} activeDot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* KPIs en tiempo real */}
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            {
-              label: `Reducción ${periodoFin}`,
-              value: `${kpis.reduccionPct}%`,
-              color: kpis.reduccionPct < -5
-                ? 'text-[var(--color-hi-success)]'
-                : kpis.reduccionPct < -2
-                  ? 'text-[var(--color-hi-warning)]'
-                  : 'text-[var(--color-hi-text-sub)]',
-            },
-            {
-              label: 'Casos evitados',
-              value: `~${(kpis.casosEvitados / 1_000_000).toFixed(1)}M`,
-              color: 'text-[var(--color-hi-navy)]',
-            },
-            {
-              label: 'Ahorro estimado',
-              value: `$${kpis.ahorroEstimadoUSD_M.toLocaleString('es-MX')}M USD`,
-              color: 'text-[var(--color-hi-navy)]',
-            },
-            {
-              label: 'ROI',
-              value: `${kpis.ROI}x`,
-              color: kpis.ROI >= 1
-                ? 'text-[var(--color-hi-success)]'
-                : 'text-[var(--color-hi-warning)]',
-            },
-          ].map(({ label, value, color }) => (
-            <div key={label}
-              className="bg-[var(--color-hi-bg)] rounded-[var(--radius-md)] p-2.5 text-center">
-              <p className="text-[10px] text-[var(--color-hi-text-hint)] mb-1 leading-tight">{label}</p>
-              <p className={`text-base font-bold ${color}`}>{value}</p>
-            </div>
-          ))}
-        </div>
+        {kpis && (
+          <div className="grid grid-cols-4 gap-2">
+            {[
+              {
+                label: `Reducción ${periodoFin}`,
+                value: `${kpis.reduccionPct}%`,
+                color: kpis.reduccionPct < -5
+                  ? 'text-[var(--color-hi-success)]'
+                  : kpis.reduccionPct < -2
+                    ? 'text-[var(--color-hi-warning)]'
+                    : 'text-[var(--color-hi-text-sub)]',
+              },
+              {
+                label: 'Casos evitados',
+                value: `~${(kpis.casosEvitados / 1_000_000).toFixed(1)}M`,
+                color: 'text-[var(--color-hi-navy)]',
+              },
+              {
+                label: 'Ahorro estimado',
+                value: `$${kpis.ahorroEstimadoUSD_M.toLocaleString('es-MX')}M USD`,
+                color: 'text-[var(--color-hi-navy)]',
+              },
+              {
+                label: 'ROI',
+                value: `${kpis.ROI}x`,
+                color: kpis.ROI >= 1
+                  ? 'text-[var(--color-hi-success)]'
+                  : 'text-[var(--color-hi-warning)]',
+              },
+            ].map(({ label, value, color }) => (
+              <div key={label}
+                className="bg-[var(--color-hi-bg)] rounded-[var(--radius-md)] p-2.5 text-center">
+                <p className="text-[10px] text-[var(--color-hi-text-hint)] mb-1 leading-tight">{label}</p>
+                <p className={`text-base font-bold ${color}`}>{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Botones */}
         <div className="flex justify-end gap-3 pt-1">
           <Button variant="secondary" onClick={handleClose}>Cancelar</Button>
-          <Button variant="primary" onClick={handleSave} loading={saving}>
+          <Button variant="primary" onClick={handleSave} loading={saving} disabled={simLoading}>
             {esEdicion ? 'Actualizar cambios' : 'Guardar escenario'}
           </Button>
         </div>
