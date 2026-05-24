@@ -4,6 +4,7 @@ import Button from '../..//common/Button'
 import InputField from '../..//common/InputField'
 import Dropdown from '../..//common/Dropdown'
 import type { UploadDatasetPayload } from '../../../services/datasetService'
+import ConfirmActionModal from '../admins/ConfirmActionModal/ConfirmActionModal'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -272,6 +273,7 @@ export default function UploadDatasetModal({
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState('')
   const [confirming, setConfirming] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const handleMetadataChange = (field: keyof DatasetMetadata, value: string) => {
     setMetadata(prev => ({ ...prev, [field]: value }))
@@ -332,9 +334,10 @@ export default function UploadDatasetModal({
     )
   }
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (justification: string) => {
     if (!uploadedFile) return
     setConfirming(true)
+    console.log('Confirming upload with justification:', justification)
     try {
       await onConfirm({
         file:        uploadedFile,
@@ -347,6 +350,7 @@ export default function UploadDatasetModal({
           sqlType:      m.sqlType,
           unidad:       m.unidad.trim() || undefined,
         })),
+        justification: justification,
       })
       handleClose()
     } finally {
@@ -399,9 +403,19 @@ export default function UploadDatasetModal({
           confirming={confirming}
           onUpdateMapping={updateMapping}
           onBack={handleBack}
-          onConfirm={handleConfirm}
+          onConfirm={() => setConfirmOpen(true)}
         />
       )}
+      <ConfirmActionModal
+      isOpen={confirmOpen}
+      onClose={() => setConfirmOpen(false)}
+      accionLabel={`Subir dataset "${metadata.title}"`}
+      loading={confirming}
+      onConfirm={async (justification) => {
+        setConfirmOpen(false)
+        await handleConfirm(justification)
+      }}
+    />
     </Modal>
   )
 }

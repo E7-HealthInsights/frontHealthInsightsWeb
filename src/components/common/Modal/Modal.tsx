@@ -55,6 +55,7 @@ export default function Modal({
     >
       
       <div
+        data-testid="modal-panel"
         className={`relative w-full ${sizeClasses[size]} bg-[var(--color-hi-surface)]
           rounded-[var(--radius-lg)] p-6 shadow-xl`}
         onClick={e => e.stopPropagation()}       // evita que el click burbujee

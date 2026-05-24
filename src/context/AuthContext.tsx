@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
-import { onAuthStateChanged } from 'firebase/auth'
+import { onAuthStateChanged, signOut } from 'firebase/auth'
 import axios from 'axios'
 import { auth } from '../lib/firebase'
 import type { UserProfile } from '../services/authService'
@@ -42,7 +42,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             { headers: { Authorization: `Bearer ${idToken}` }, timeout: 10000 }
           )
           console.log('[AuthContext] /auth/me ✅', res.status, res.data)
-          setUser(res.data)
+          if (res.data.status === false) {
+            console.warn('[AuthContext] usuario inactivo, cerrando sesión')
+            await signOut(auth)
+            localStorage.removeItem('idToken')
+            setUser(null)
+          } else {
+            setUser(res.data)
+          }
         } catch (err) {
           console.error('[AuthContext] /auth/me ❌', err)
           setUser(null)

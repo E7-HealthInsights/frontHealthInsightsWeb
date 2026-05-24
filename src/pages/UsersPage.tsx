@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
-import { createUser, getUsers }  from '../services/userService'
+import { createUser, getUsers, updateUser, deleteUser } from '../services/userService'
 
 import Navbar           from '../components/common/Navbar'
 import Card             from '../components/common/Card'
@@ -11,9 +11,11 @@ import SearchInput      from '../components/common/SearchInput/SearchInput'
 import Button           from '../components/common/Button'
 import UsersTable       from '../components/features/admins/UsersTable/UsersTable'
 import CreateUserModal, { type NewUserPayload } from '../components/features/admins/CreateUserModal/CreateUserModal'
+import EditUserModal        from '../components/features/admins/EditUserModal/EditUserModal'
+import ConfirmActionModal  from '../components/features/admins/ConfirmActionModal/ConfirmActionModal'
 
 import type { User } from '../types/User'
-import type { UserResponse } from '../services/userService'
+import type { UserResponse, UpdateUserPayload } from '../services/userService'
 
 // ── Nav links ─────────────────────────────────────────────────────────────────
 
@@ -35,7 +37,7 @@ const toUser = (u: UserResponse): User => ({
   nombre:   u.name,
   apellido: u.lastName,
   correo:   u.email,
-  rol:      u.role,
+  rol:      typeof u.role === 'string' ? u.role : (u.role?.name ?? ''),
   estatus:  u.status ? 'Activo' : 'Inactivo',
 })
 
@@ -48,7 +50,10 @@ export default function UsersPage() {
   const [tab,         setTab]         = useState('activos')
   const [search,      setSearch]      = useState('')
   const [modalOpen,   setModalOpen]   = useState(false)
-  const [users,       setUsers]       = useState<User[]>([])
+  const [editTarget,    setEditTarget]    = useState<User | null>(null)
+  const [deleteTarget,  setDeleteTarget]  = useState<User | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [users,         setUsers]         = useState<User[]>([])
 
   useEffect(() => {
     getUsers()
@@ -62,13 +67,31 @@ export default function UsersPage() {
     navigate('/login', { replace: true })
   }
 
+  const handleDelete = async (justification: string) => {
+    if (!deleteTarget) return
+    setDeleteLoading(true)
+    try {
+      await deleteUser(deleteTarget.id, justification)
+      setUsers(prev => prev.map(u => u.id === deleteTarget.id ? { ...u, estatus: 'Inactivo' as const } : u))
+      setDeleteTarget(null)
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
+  const handleEdit = async (id: string, payload: UpdateUserPayload) => {
+    const updated = await updateUser(id, payload)
+    setUsers(prev => prev.map(u => u.id === id ? toUser(updated) : u))
+  }
+
   const handleCreate = async (payload: NewUserPayload) => {
     const created = await createUser({
-      name:     payload.nombre,
-      lastName: payload.apellido,
-      email:    payload.correo,
-      password: payload.password,
-      roleId:   payload.roleId,
+      name:          payload.nombre,
+      lastName:      payload.apellido,
+      email:         payload.correo,
+      password:      payload.password,
+      roleId:        payload.roleId,
+      justification: payload.justification,
     })
     setUsers(prev => [...prev, toUser(created)])
   }
@@ -132,8 +155,8 @@ export default function UsersPage() {
 
           <UsersTable
             data={filtered}
-            onEdit={user => console.log('Editar', user)}
-            onDelete={user => console.log('Eliminar', user)}
+            onEdit={user => setEditTarget(user)}
+            onDelete={user => setDeleteTarget(user)}
           />
         </Card>
 
@@ -143,6 +166,21 @@ export default function UsersPage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreate={handleCreate}
+      />
+
+      <EditUserModal
+        user={editTarget}
+        isOpen={editTarget !== null}
+        onClose={() => setEditTarget(null)}
+        onEdit={handleEdit}
+      />
+
+      <ConfirmActionModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        accionLabel={deleteTarget ? `eliminar al usuario "${deleteTarget.nombre} ${deleteTarget.apellido}"` : ''}
+        onConfirm={handleDelete}
+        loading={deleteLoading}
       />
     </div>
   )
