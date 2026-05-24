@@ -3,12 +3,15 @@ import { useNavigate }    from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useAuth }        from '../../context/AuthContext'
 import { logout }         from '../../services/authService'
-import { deleteProyeccion, getProyecciones, saveProyeccion } from '../../services/proyeccionService'
+import { deleteProyeccion, getProyecciones, saveProyeccion, updateProyeccion } from '../../services/proyeccionService'
+import ProjectionCard from '../../components/features/projections/ProjectionCard'
+import FinanzasProyeccionModal from '../../components/features/projections/FinanzasProyeccionModal'
 import type { Proyeccion, ProyeccionResultado } from '../../types/Proyeccion'
 import Navbar from '../../components/common/Navbar'
 import ProyeccionDetalle from '../../components/features/projections/ProyeccionDetalle'
-import ProjectionCard from '../../components/features/projections/ProjectionCard'
-import FinanzasProyeccionModal from '../../components/features/projections/FinanzasProyeccionModal'
+import type { FinanzasResultado } from '../../types/FinanzasProyeccion'
+import Modal from '../../components/common/Modal'
+import Button from '../../components/common/Button'
 
 
 const NAV_LINKS = [
@@ -27,6 +30,8 @@ export default function FinanzasProyeccionesPage() {
   const [view,     setView]     = useState<View>('list')
   const [selected, setSelected] = useState<Proyeccion | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [proyeccionToEdit, setProyeccionToEdit] = useState<Proyeccion | undefined>(undefined)
+  const [deleteTarget,     setDeleteTarget]     = useState<Proyeccion | null>(null)
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -41,12 +46,31 @@ export default function FinanzasProyeccionesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['proyecciones'] })
       setModalOpen(false)
+      setProyeccionToEdit(undefined)
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, titulo, descripcion, resultado }: {
+      id: string; titulo: string; descripcion: string; resultado: FinanzasResultado
+    }) => updateProyeccion(id, titulo, descripcion, resultado),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['proyecciones'] })
+      setModalOpen(false)
+      setProyeccionToEdit(undefined)
+      // Si estamos en detalle, actualiza el seleccionado
+      if (selected?.id === updated.id) setSelected(updated)
+    },
+  })
+ 
   const deleteMutation = useMutation({
     mutationFn: deleteProyeccion,
-    onSuccess:  () => queryClient.invalidateQueries({ queryKey: ['proyecciones'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['proyecciones'] })
+      setDeleteTarget(null)
+      // Si eliminamos desde el detalle, volvemos a la lista
+      if (view === 'detail') { setSelected(null); setView('list') }
+    },
   })
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -58,6 +82,36 @@ export default function FinanzasProyeccionesPage() {
 
   const handleVer = (p: Proyeccion) => { setSelected(p); setView('detail') }
   const handleVolver = ()            => { setSelected(null); setView('list') }
+
+  // Editar — abre modal con datos precargados
+  const handleEditar = (p: Proyeccion) => {
+    setProyeccionToEdit(p)
+    setModalOpen(true)
+  }
+ 
+  // Eliminar — abre  modal
+// Handler
+  const handleEliminar = (id: string) => {
+    const p = proyecciones.find(p => p.id === id) ?? selected
+    if (p) setDeleteTarget(p)
+  }
+ 
+  // Nueva proyección
+  const handleNueva = () => {
+    setProyeccionToEdit(undefined)
+    setModalOpen(true)
+  }
+ 
+  // Save del modal (crea o actualiza según si hay proyeccionToEdit)
+  const handleSave = async (titulo: string, descripcion: string, resultado: FinanzasResultado) => {
+    if (proyeccionToEdit) {
+      await updateMutation.mutateAsync({ id: proyeccionToEdit.id, titulo, descripcion, resultado })
+    } else {
+      await saveMutation.mutateAsync({ titulo, descripcion, resultado })
+    }
+  }
+ 
+  const isSaving = saveMutation.isPending || updateMutation.isPending
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -74,7 +128,7 @@ export default function FinanzasProyeccionesPage() {
 
         {/* Vista detalle */}
         {view === 'detail' && selected && (
-          <ProyeccionDetalle proyeccion={selected} onVolver={handleVolver} />
+          <ProyeccionDetalle proyeccion={selected} onVolver={handleVolver} onEditar={handleEditar} onEliminar={handleEliminar} />
         )}
 
         {/* Vista lista */}
@@ -115,7 +169,6 @@ export default function FinanzasProyeccionesPage() {
                     key={p.id}
                     proyeccion={p}
                     onVer={handleVer}
-                    onDelete={id => deleteMutation.mutate(id)}
                   />
                 ))}
               </div>
@@ -168,8 +221,43 @@ export default function FinanzasProyeccionesPage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         saving={saveMutation.isPending}
-        onSave={(titulo, descripcion, resultado) => saveMutation.mutateAsync({ titulo, descripcion, resultado })}
+        proyeccionToEdit={proyeccionToEdit}
+        onSave={handleSave}
       />
+
+        <Modal
+          isOpen={!!deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          title="¿Eliminar escenario?"
+          size="sm"
+        >
+          <p className="text-sm text-[var(--color-hi-text-sub)] mb-6">
+            Estás a punto de eliminar{' '}
+            <span className="font-semibold text-[var(--color-hi-text-main)]">
+              "{deleteTarget?.titulo}"
+            </span>
+            . Esta acción no se puede deshacer.
+          </p>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="primary"
+              className="bg-[var(--color-hi-danger)] border-[var(--color-hi-danger)] hover:opacity-90"
+              loading={deleteMutation.isPending}
+              onClick={async () => {
+                if (deleteTarget) {
+                  await deleteMutation.mutateAsync(deleteTarget.id)
+                  setDeleteTarget(null)
+                  if (view === 'detail') { setSelected(null); setView('list') }
+                }
+              }}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </Modal>
 
     </div>
   )

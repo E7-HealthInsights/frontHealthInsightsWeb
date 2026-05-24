@@ -1,58 +1,64 @@
 import api from "../lib/api"
-import type { GeneralProyeccionParams, GeneralPunto, GeneralResultado } from "../types/GeneralProyeccion"
-import type { ProyeccionDTO, Proyeccion, ProyeccionResultado, TipoInversion, ProyeccionParams, PuntoProyeccion } from "../types/Proyeccion"
+import type { GeneralProyeccionParams, GeneralResultado } from "../types/GeneralProyeccion"
+import type { FinanzasParams, FinanzasResultado, RubroFinanzas } from "../types/FinanzasProyeccion"
+import { parseProyeccion, type Proyeccion, type ProyeccionDTO, type ProyeccionResultado, type PuntoProyeccion } from "../types/Proyeccion"
 
 
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-export function parseProyeccion(dto: ProyeccionDTO): Proyeccion {
-  return { ...dto, resultado: JSON.parse(dto.resultado) as ProyeccionResultado }
-}
-
-// ─── Modelo matemático ────────────────────────────────────────────────────────
+// ─── Director de Finanzas v2 ──────────────────────────────────────────────────
 //
-// Fuentes:
-//   - PREVALENCIA_BASE_2024: IDF Diabetes Atlas 2024 (dato real en BD)
-//   - TASA_CRECIMIENTO_BASE: calculada de PAHO 1990–2022
-//   - IMPACTO_POR_100M: estimaciones basadas en DPP Study (NEJM 2002),
-//     WHO Global Diabetes Compact 2021, CDC 2023.
-//     ⚠ Son estimaciones bibliográficas, no calculadas desde nuestros CSVs.
-//
-// Fórmulas:
-//   sinIntervencion(n) = P₀ × (1 + r)^n
-//   conIntervencion(n) = P₀ × (1 + r × (1 – impacto))^n
-//   impacto = IMPACTO_POR_100M[tipo] × (inversión / 100)
-//
-// KPIs:
-//   reduccionProyectada  = (con_final – sin_final) / sin_final × 100
-//   casosEvitados        = (sin_final – con_final) × 800_000
-//   ahorroEstimadoMill.  = casosEvitados × 1_438 / 1_000_000
+// Modelo: inversión en PREVENCIÓN para los ~12.75M mexicanos con prediabetes.
+// Fuentes: DPP Study NEJM 2002, WHO Global Action Plan 2013-2020, IDF 2024.
+// ⚠ Simulación de política pública — no es un modelo clínico validado.
+
 
 const PREVALENCIA_BASE_2024 = 16.4    // % — IDF 2024
 const TASA_CRECIMIENTO_BASE = 0.021   // 2.1% anual histórico — PAHO 1990–2022
+const POBLACION_ADULTA      = 85_000_000
+const GASTO_PER_CAPITA_USD  = 1_438     // IDF 2024
 
-// Reducción de la tasa de crecimiento por cada 100M MXN invertidos
-const IMPACTO_POR_100M: Record<TipoInversion, number> = {
-  PREVENCION:  0.045,   // DPP Study NEJM 2002
-  TRATAMIENTO: 0.024,   // WHO Global Diabetes Compact 2021
-  DETECCION:   0.012,   // CDC 2023
+// Efectividad clínica por rubro — porcentaje de reducción de incidencia
+// con cobertura del 100% de la población en riesgo
+const EFECTIVIDAD: Record<RubroFinanzas, number> = {
+  NUTRICION:    0.58,   // DPP Study NEJM 2002: -58% en pre-diabéticos
+  MEDICAMENTOS: 0.31,   // DPP Study NEJM 2002: -31% con metformina
+  DETECCION:    0.10,   // CDC Diabetes Prevention Program
+  ATENCION:     0.35,   // WHO Global Action Plan 2013-2020 (promedio 25-45%)
+}
+ 
+// Costo en MXN millones para cubrir al 100% de los 12.75M pre-diabéticos
+const COSTO_COBERTURA_TOTAL: Record<RubroFinanzas, number> = {
+  NUTRICION:    10_000,  // programa intensivo
+  MEDICAMENTOS:  2_000,  // metformina genérica
+  DETECCION:     1_000,  // tamizaje masivo
+  ATENCION:      5_000,  // consultas primer nivel
 }
 
-export function calcularProyeccion(params: ProyeccionParams): ProyeccionResultado {
-  const { tipoInversion, inversionAnualMillones, periodoInicio, periodoFin } = params
+const TIPO_CAMBIO_MXN_USD = 17.5   // aproximado para el cálculo de ROI
 
-  // Impacto sobre la tasa de crecimiento (se satura en 1 para no hacerla negativa)
-  const impacto = Math.min(
-    IMPACTO_POR_100M[tipoInversion] * (inversionAnualMillones / 100),
-    1
-  )
-
+// ── Cálculo ──────────────────────────────────────────────────────────────────
+ 
+export function calcularProyeccionFinanzas(params: FinanzasParams): FinanzasResultado {
+  const { presupuestoTotalMillones, distribucion, periodoInicio, periodoFin } = params
+ 
+  // Impacto total sumando los 4 rubros
+  const rubros: RubroFinanzas[] = ['NUTRICION', 'MEDICAMENTOS', 'DETECCION', 'ATENCION']
+ 
+  let impactoTotal = 0
+  for (const rubro of rubros) {
+    const inversionRubroM = presupuestoTotalMillones * (distribucion[rubro] / 100)
+    const coberturaRubro  = Math.min(inversionRubroM / COSTO_COBERTURA_TOTAL[rubro], 1.0)
+    impactoTotal += EFECTIVIDAD[rubro] * coberturaRubro
+  }
+ 
+  // Tasa de crecimiento reducida por la intervención
+  const tasaReducida = Math.max(0, TASA_CRECIMIENTO_BASE * (1 - impactoTotal))
+ 
+  // Curvas año a año
   const años = Array.from(
     { length: periodoFin - periodoInicio + 1 },
     (_, i) => periodoInicio + i
   )
-
+ 
   const puntos: PuntoProyeccion[] = años.map(año => {
     const n = año - periodoInicio
     return {
@@ -61,26 +67,35 @@ export function calcularProyeccion(params: ProyeccionParams): ProyeccionResultad
         (PREVALENCIA_BASE_2024 * Math.pow(1 + TASA_CRECIMIENTO_BASE, n)).toFixed(2)
       ),
       conIntervencion: parseFloat(
-        (PREVALENCIA_BASE_2024 * Math.pow(1 + TASA_CRECIMIENTO_BASE * (1 - impacto), n)).toFixed(2)
+        (PREVALENCIA_BASE_2024 * Math.pow(1 + tasaReducida, n)).toFixed(2)
       ),
     }
   })
-
-  const ultimo  = puntos[puntos.length - 1]
-  const reduccionProyectada = parseFloat(
+ 
+  // KPIs al año final
+  const ultimo   = puntos[puntos.length - 1]
+  const años_n   = periodoFin - periodoInicio
+ 
+  const reduccionPct = parseFloat(
     (((ultimo.conIntervencion - ultimo.sinIntervencion) / ultimo.sinIntervencion) * 100).toFixed(1)
   )
-  // 1% prevalencia ≈ 800,000 personas (población adulta México ~85M)
   const casosEvitados = Math.round(
-    (ultimo.sinIntervencion - ultimo.conIntervencion) * 800_000
+    ((ultimo.sinIntervencion - ultimo.conIntervencion) / 100) * POBLACION_ADULTA
   )
-  // $1,438 USD = gasto per cápita diabetes México 2024 — IDF 2024 (dato real de BD)
-  const ahorroEstimadoMillones = Math.round(casosEvitados * 1_438 / 1_000_000)
-
+  const ahorroEstimadoUSD_M = Math.round(casosEvitados * GASTO_PER_CAPITA_USD / 1_000_000)
+ 
+  // ROI: ahorro en MXN / inversión total en MXN
+  const inversionTotalM = presupuestoTotalMillones * años_n
+  const ahorroMXN_M     = ahorroEstimadoUSD_M * TIPO_CAMBIO_MXN_USD
+  const ROI = inversionTotalM > 0
+    ? parseFloat((ahorroMXN_M / inversionTotalM).toFixed(2))
+    : 0
+ 
   return {
+    tipo: 'FINANZAS',
     params,
     puntos,
-    kpis: { reduccionProyectada, casosEvitados, ahorroEstimadoMillones },
+    kpis: { reduccionPct, casosEvitados, ahorroEstimadoUSD_M, ROI },
   }
 }
 
@@ -107,7 +122,7 @@ export function calcularProyeccionGeneral(params: GeneralProyeccionParams): Gene
     (_, i) => periodoInicio + i
   )
  
-  const puntos: GeneralPunto[] = años.map(año => {
+  const puntos: PuntoProyeccion[] = años.map(año => {
     const n = año - periodoInicio
     return {
       año,
@@ -144,7 +159,7 @@ export async function getProyecciones(): Promise<Proyeccion[]> {
   const res = await api.get<ProyeccionDTO[]>('/proyecciones')
   return res.data.map(parseProyeccion)
 }
-
+ 
 export async function saveProyeccion(
   titulo:      string,
   descripcion: string,
@@ -158,6 +173,21 @@ export async function saveProyeccion(
   return parseProyeccion(res.data)
 }
 
+// TODO: conectar cuando el backend tenga PUT /proyecciones/{id}
+export async function updateProyeccion(
+  id:          string,
+  titulo:      string,
+  descripcion: string,
+  resultado:   ProyeccionResultado
+): Promise<Proyeccion> {
+  const res = await api.patch<ProyeccionDTO>(`/proyecciones/${id}`, {
+    titulo,
+    descripcion,
+    resultado: JSON.stringify(resultado),
+  })
+  return parseProyeccion(res.data)
+}
+ 
 export async function deleteProyeccion(id: string): Promise<void> {
   await api.delete(`/proyecciones/${id}`)
 }

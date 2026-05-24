@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
@@ -7,6 +7,7 @@ import type { GeneralResultado } from '../../../types/GeneralProyeccion'
 import { calcularProyeccionGeneral } from '../../../services/proyeccionService'
 import Modal from '../../common/Modal'
 import Button from '../../common/Button'
+import type { Proyeccion } from '../../../types/Proyeccion'
 
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -16,6 +17,7 @@ interface GeneralProyeccionModalProps {
   onClose: () => void
   onSave:  (titulo: string, descripcion: string, resultado: GeneralResultado) => Promise<unknown>
   saving?: boolean
+  proyeccionToEdit?: Proyeccion
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -50,8 +52,11 @@ const tasaLabel = (v: number): string => {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function GeneralProyeccionModal({
-  isOpen, onClose, onSave, saving = false,
+  isOpen, onClose, onSave, saving = false, proyeccionToEdit
 }: GeneralProyeccionModalProps) {
+
+  const esEdicion = !!proyeccionToEdit
+  const paramsPrev = esEdicion ? (proyeccionToEdit!.resultado as GeneralResultado).params : null
 
   const [titulo,           setTitulo]           = useState('')
   const [descripcion,      setDescripcion]      = useState('')
@@ -59,6 +64,19 @@ export default function GeneralProyeccionModal({
   const [intensidad,       setIntensidad]       = useState(20)
   const [periodoFin,       setPeriodoFin]       = useState(2035)
   const [error,            setError]            = useState('')
+
+  useEffect(() => {
+    if (proyeccionToEdit && esEdicion) {
+      const r = proyeccionToEdit.resultado as GeneralResultado
+      setTitulo(proyeccionToEdit.titulo)
+      setDescripcion(proyeccionToEdit.descripcion ?? '')
+      setTasa(r.params.tasaCrecimiento)
+      setIntensidad(r.params.intensidadPolitica)
+      setPeriodoFin(r.params.periodoFin)
+    } else {
+      reset()
+    }
+  }, [proyeccionToEdit, isOpen])
 
   // Recalcula en tiempo real
   const resultado = useMemo(() => calcularProyeccionGeneral({
@@ -94,8 +112,8 @@ export default function GeneralProyeccionModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Nueva Proyección"
-      subtitle="¿Cómo evolucionará la diabetes en México según distintas políticas?"
+      title={esEdicion ? 'Editar proyección' : 'Nueva proyección'}
+      subtitle={esEdicion ? 'Modificando Proyección' : '¿Cómo evolucionará la diabetes en México según distintas políticas públicas?'}
       size="lg"
     >
       <div className="flex flex-col gap-5">
@@ -307,7 +325,7 @@ export default function GeneralProyeccionModal({
         <div className="flex justify-end gap-3 pt-1">
           <Button variant="secondary" onClick={handleClose}>Cancelar</Button>
           <Button variant="primary" onClick={handleSave} loading={saving}>
-            Guardar escenario
+            {esEdicion ? 'Actualizar cambios' : 'Guardar escenario'}
           </Button>
         </div>
 
