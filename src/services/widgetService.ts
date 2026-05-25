@@ -49,16 +49,36 @@ export interface ErrorWidgetData {
 
 export type WidgetTipo = 'STAT' | 'LINE' | 'BAR' | 'PIE' | 'MULTISERIES' | 'MULTIBAR' | 'HEATMAP' | 'TABLE'
 
+// Tipado semántico de la métrica: cómo interpretar los números del widget.
+// Lo lee la IA para no confundir % con conteos ni mezclar tasas con totales.
+export type TipoSemantico =
+  | 'porcentaje'   // 0..100
+  | 'conteo'       // casos absolutos
+  | 'tasa'         // relativo a población base
+  | 'moneda'       // MXN, USD, etc.
+  | 'indice'       // índice compuesto (base=100)
+  | 'texto'        // valor no numérico
+
+// Nivel geográfico del dato. Evita que la IA mezcle municipios con estados.
+export type NivelGeografico =
+  | 'pais'
+  | 'estado'
+  | 'municipio'
+  | 'colonia'
+  | 'sin_geo'
+
 export interface WidgetDTO {
-  id:          string
-  orden:       number
-  titulo:      string
-  subtitulo?:  string
-  seriesName?: string
-  xAxisLabel?: string
-  yAxisLabel?: string
-  tipo:        WidgetTipo
-  data:        WidgetData
+  id:               string
+  orden:            number
+  titulo:           string
+  subtitulo?:       string
+  seriesName?:      string
+  xAxisLabel?:      string
+  yAxisLabel?:      string
+  tipo:             WidgetTipo
+  tipoSemantico?:   TipoSemantico | null
+  nivelGeografico?: NivelGeografico | null
+  data:             WidgetData
 }
 
 // ── Type guards ───────────────────────────────────────────────────────────────
@@ -163,10 +183,30 @@ export type QueryConfig =
 // ── Payload para crear un widget ──────────────────────────────────────────────
 
 export interface CreateWidgetPayload {
-  titulo:      string
-  tipo:        WidgetTipo
-  queryConfig: QueryConfig
-  orden:       number
+  titulo:           string
+  tipo:             WidgetTipo
+  queryConfig:      QueryConfig
+  orden:            number
+  tipoSemantico?:   TipoSemantico
+  nivelGeografico?: NivelGeografico
+}
+
+// Labels en español para los selectores de UI.
+export const TIPO_SEMANTICO_LABEL: Record<TipoSemantico, string> = {
+  porcentaje: 'Porcentaje (0–100)',
+  conteo:     'Conteo / casos absolutos',
+  tasa:       'Tasa (relativa a población)',
+  moneda:     'Moneda (MXN, USD…)',
+  indice:     'Índice (base = 100)',
+  texto:      'Texto / categórico',
+}
+
+export const NIVEL_GEOGRAFICO_LABEL: Record<NivelGeografico, string> = {
+  pais:      'País',
+  estado:    'Estado',
+  municipio: 'Municipio',
+  colonia:   'Colonia / AGEB',
+  sin_geo:   'Sin geografía',
 }
 
 // ── Operaciones API ───────────────────────────────────────────────────────────
@@ -182,10 +222,12 @@ export async function deleteWidget(id: string): Promise<void> {
 
 export async function createWidget(payload: CreateWidgetPayload): Promise<WidgetDTO> {
   const body = {
-    titulo:      payload.titulo,
-    tipoId:      TIPO_ID_MAP[payload.tipo],
-    queryConfig: JSON.stringify(payload.queryConfig),
-    orden:       payload.orden,
+    titulo:           payload.titulo,
+    tipoId:           TIPO_ID_MAP[payload.tipo],
+    queryConfig:      JSON.stringify(payload.queryConfig),
+    orden:            payload.orden,
+    tipoSemantico:    payload.tipoSemantico   ?? null,
+    nivelGeografico:  payload.nivelGeografico ?? null,
   }
   const res = await api.post<WidgetDTO>('/widgets', body)
   return res.data
