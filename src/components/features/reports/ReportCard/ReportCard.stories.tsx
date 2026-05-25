@@ -30,7 +30,6 @@ export const Default: Story = {
     id: 'RPT-001',
     title: 'Análisis Diabetes Q1 2026',
     date: '01/03/2026',
-    size: '2.4 MB',
   },
 }
 
@@ -40,7 +39,6 @@ export const ReporteGrande: Story = {
     id: 'RPT-042',
     title: 'Reporte Anual de Prevalencia Nacional 2025',
     date: '31/12/2025',
-    size: '18.7 MB',
   },
 }
 
@@ -50,6 +48,5 @@ export const ReporteReciente: Story = {
     id: 'RPT-099',
     title: 'Indicadores Epidemiológicos Q1 2026',
     date: '15/04/2026',
-    size: '512 KB',
   },
 }

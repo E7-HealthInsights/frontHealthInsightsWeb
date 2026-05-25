@@ -1,4 +1,5 @@
 import api from '../lib/api'
+import type { PaginadoResponse } from '../types/PaginadoResponse'
 
 export interface CreateUserPayload {
   name:          string
@@ -28,8 +29,10 @@ export async function createUser(payload: CreateUserPayload): Promise<UserRespon
   return res.data
 }
 
-export async function getUsers(): Promise<UserResponse[]> {
-  const res = await api.get<UserResponse[]>('/users')
+export async function getUsers(page=1, size=10, search='', status=true): Promise<PaginadoResponse<UserResponse>> {
+  const res = await api.get<PaginadoResponse<UserResponse>>('/users', {
+    params: { page, size, search, status }
+  })
   return res.data
 }
 

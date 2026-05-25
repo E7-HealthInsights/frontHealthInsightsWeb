@@ -49,7 +49,7 @@ export default function Badge({
   return (
     <span
       className={`
-        inline-block px-2.5 py-0.5
+        inline-flex items-center px-2.5 py-0.5
         text-xs font-medium
         ${variantClasses[variant]}
         ${shapeClasses[shape]}

@@ -1,4 +1,3 @@
-import type { ActivityAction } from '../../../../types/ActivityActions'
 import DataTable, { type Column } from '../../../common/DataTable'
 import ActionBadge from '../Badges/ActionBadge/ActionBadge'
 
@@ -13,6 +12,7 @@ export type ActivityRow = {
 
 interface ActivityTableProps {
   data: ActivityRow[]
+  wrap?: boolean
 }
 
 
@@ -27,45 +27,42 @@ const TimestampCell = ({ timestamp }: { timestamp: string }) => (
   </span>
 )
 
-const DetalleCell = ({ detalle }: { detalle: string }) => (
-  <span
-    className="block text-sm text-[var(--color-hi-text-sub)] italic truncate"
-    title={detalle}
-  >
-    "{detalle}"
-  </span>
-)
 
-const columns: Column<ActivityRow>[] = [
-  {
-    key:    'accion',
-    header: 'Acción',
-    width:  'w-[30%]',
-    render: row => <ActionBadge action={row.accion} />,
-  },
-  {
-    key:    'timestamp',
-    header: 'Fecha y hora',
-    width:  'w-[18%]',
-    render: row => <TimestampCell timestamp={row.timestamp} />,
-  },
-  {
-    key:    'admin',
-    header: 'Admin',
-    width:  'w-[17%]',
-    render: row => <span className="whitespace-nowrap">{row.admin}</span>,
-  },
-  {
-    key:    'detalle',
-    header: 'Justificación',
-    width:  'w-[35%]',
-    render: row => <DetalleCell detalle={row.detalle} />,
-  },
-]
+export default function ActivityTable({ data, wrap = false }: ActivityTableProps) {
+  const columns: Column<ActivityRow>[] = [
+    {
+      key:    'accion',
+      header: 'Acción',
+      width:  'w-[30%]',
+      render: row => <ActionBadge action={row.accion} />,
+    },
+    {
+      key:    'timestamp',
+      header: 'Fecha y hora',
+      width:  'w-[18%]',
+      render: row => <TimestampCell timestamp={row.timestamp} />,
+    },
+    {
+      key:    'admin',
+      header: 'Admin',
+      width:  'w-[17%]',
+      render: row => <span className="whitespace-nowrap">{row.admin}</span>,
+    },
+    {
+      key:    'detalle',
+      header: 'Justificación',
+      width:  'w-[35%]',
+      render: row => (
+        <span
+          className={`block text-sm text-[var(--color-hi-text-sub)] italic ${wrap ? 'break-words' : 'truncate'}`}
+          title={row.detalle}
+        >
+          "{row.detalle}"
+        </span>
+      ),
+    },
+  ]
 
-
-
-export default function ActivityTable({ data }: ActivityTableProps) {
   return (
     <DataTable
       columns={columns}
