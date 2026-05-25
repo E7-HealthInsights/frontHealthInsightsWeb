@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
@@ -12,6 +12,7 @@ import SearchInput          from '../components/common/SearchInput/SearchInput'
 import ActivityTable, { type ActivityRow } from '../components/features/admins/ActivityTable/ActivityTable'
 import Pagination           from '../components/common/Pagination/Pagination'
 import GenerateReportButton from '../components/features/reports/GenerateReportButton/GenerateReportButton'
+import { debounce } from 'lodash'
 
 // ── Nav links ─────────────────────────────────────────────────────────────────
 
@@ -42,12 +43,35 @@ export default function AdminPage() {
   const [search,   setSearch]   = useState('')
   const [activity, setActivity] = useState<ActivityRow[]>([])
   const [page,     setPage]     = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
+  const [loading,     setLoading]     = useState(false)
 
-  useEffect(() => {
-    getActividad()
-      .then(list => setActivity(list.map(toActivityRow)))
+  const fetchActividad = useCallback((p: number, s: string) => {
+    setLoading(true)
+    getActividad(p, PAGE_SIZE, s)
+      .then(res => {
+        setActivity(res.data.map(toActivityRow))
+        setTotalPaginas(res.totalPaginas)
+      })
       .catch(err => console.error('Error al cargar actividad', err))
+      .finally(() => setLoading(false))
   }, [])
+
+  // Carga inicial y cuando cambia página
+  useEffect(() => {
+    fetchActividad(page, search)
+  }, [page])
+
+  // Debounce para búsqueda — espera 400ms antes de llamar al back
+  const debouncedSearch = useMemo(
+    () => debounce((value: string) => {
+      setPage(1)          // regresa a página 1 al buscar
+      fetchActividad(1, value)
+    }, 400),
+    [fetchActividad]
+  )
+
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch])
 
   const handleLogout = async () => {
     await logout()
@@ -62,12 +86,13 @@ export default function AdminPage() {
     row.detalle.toLowerCase().includes(search.toLowerCase())
   )
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
   const handleSearch = (value: string) => {
     setSearch(value)
-    setPage(1)
+    debouncedSearch(value)
+  }
+
+  const handlePageChange = (newPage: number) => {  
+    setPage(newPage)
   }
 
   return (
@@ -100,13 +125,19 @@ export default function AdminPage() {
             className="mb-4"
           />
 
-          <ActivityTable data={paginated} />
+          {loading
+            ? <p className="text-sm text-[var(--color-hi-text-sub)] py-8 text-center">
+                Cargando actividad…
+              </p>
+            : <ActivityTable data={activity} />
+          }
+
 
           <div className="flex items-center justify-between mt-6">
             <Pagination
               currentPage={page}
-              totalPages={totalPages}
-              onChange={setPage}
+              totalPages={totalPaginas}
+              onChange={handlePageChange}
             />
             <GenerateReportButton />
           </div>
