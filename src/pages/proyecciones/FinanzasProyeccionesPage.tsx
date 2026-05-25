@@ -1,5 +1,5 @@
-import { useState }       from 'react'
-import { useNavigate }    from 'react-router-dom'
+import { useRef, useState } from 'react'
+import { useNavigate }      from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { useAuth }        from '../../context/AuthContext'
 import { logout }         from '../../services/authService'
@@ -7,8 +7,11 @@ import { deleteProyeccion, getProyecciones, saveProyeccion, updateProyeccion } f
 import ProjectionCard from '../../components/features/projections/ProjectionCard'
 import FinanzasProyeccionModal from '../../components/features/projections/FinanzasProyeccionModal'
 import type { Proyeccion, ProyeccionResultado } from '../../types/Proyeccion'
-import Navbar from '../../components/common/Navbar'
-import ProyeccionDetalle from '../../components/features/projections/ProyeccionDetalle'
+import Navbar               from '../../components/common/Navbar'
+import ProyeccionDetalle    from '../../components/features/projections/ProyeccionDetalle'
+import GenerateReportButton from '../../components/features/reports/GenerateReportButton/GenerateReportButton'
+import { useGenerarPDF }    from '../../hooks/useGenerarPDF'
+import { createReporte }    from '../../services/reportService'
 import type { FinanzasResultado } from '../../types/FinanzasProyeccion'
 import Modal from '../../components/common/Modal'
 import Button from '../../components/common/Button'
@@ -26,6 +29,9 @@ export default function FinanzasProyeccionesPage() {
   const { user, setUser } = useAuth()
   const navigate          = useNavigate()
   const queryClient       = useQueryClient()
+
+  const reporteRef             = useRef<HTMLDivElement>(null)
+  const { generar, generando } = useGenerarPDF()
 
   const [view,     setView]     = useState<View>('list')
   const [selected, setSelected] = useState<Proyeccion | null>(null)
@@ -81,7 +87,14 @@ export default function FinanzasProyeccionesPage() {
   }
 
   const handleVer = (p: Proyeccion) => { setSelected(p); setView('detail') }
-  const handleVolver = ()            => { setSelected(null); setView('list') }
+  const handleVolver = () => { setSelected(null); setView('list') }
+
+  const handleGenerarReporte = async () => {
+    if (!reporteRef.current || !selected) return
+    const titulo = `Proyección: ${selected.titulo}`
+    await generar(reporteRef.current, titulo)
+    createReporte({ titulo, tipo: 'PROYECCION', referenciaId: selected.id }).catch(() => {})
+  }
 
   // Editar — abre modal con datos precargados
   const handleEditar = (p: Proyeccion) => {
@@ -128,7 +141,17 @@ export default function FinanzasProyeccionesPage() {
 
         {/* Vista detalle */}
         {view === 'detail' && selected && (
-          <ProyeccionDetalle proyeccion={selected} onVolver={handleVolver} onEditar={handleEditar} onEliminar={handleEliminar} />
+          <>
+            <ProyeccionDetalle
+              proyeccion={selected}
+              onVolver={handleVolver}
+              onEditar={handleEditar}
+              onEliminar={handleEliminar}
+            />
+            <div className="flex justify-end mt-6">
+              <GenerateReportButton onClick={handleGenerarReporte} loading={generando} />
+            </div>
+          </>
         )}
 
         {/* Vista lista */}
@@ -214,6 +237,32 @@ export default function FinanzasProyeccionesPage() {
             <line x1="5"  y1="12" x2="19" y2="12"/>
           </svg>
         </button>
+      )}
+
+      {/* Contenido del PDF — fuera de pantalla */}
+      {selected && (
+        <div
+          ref={reporteRef}
+          aria-hidden="true"
+          className="fixed top-0 bg-white p-8"
+          style={{ left: '-9999px', width: '1100px' }}
+        >
+          <div className="mb-6">
+            <h1 className="text-xl font-bold text-[var(--color-hi-navy)]">
+              {selected.titulo}
+            </h1>
+            <p className="text-sm text-[var(--color-hi-text-sub)] mt-1">
+              Generado por: {user?.name} {user?.lastName} &nbsp;·&nbsp; {new Date().toLocaleDateString('es-MX')}
+            </p>
+          </div>
+          <ProyeccionDetalle
+            proyeccion={selected}
+            onVolver={() => {}}
+            onEditar={() => {}}
+            onEliminar={() => {}}
+            pdf
+          />
+        </div>
       )}
 
       {/* Modal específico de Finanzas */}
