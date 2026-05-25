@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
 
 import { getActividad } from '../services/activityService'
 import type { LogActividadResponse } from '../services/activityService'
+
+import { createReporte } from '../services/reportService'
+import { useGenerarPDF } from '../hooks/useGenerarPDF'
 
 import Navbar               from '../components/common/Navbar'
 import Card                 from '../components/common/Card'
@@ -31,6 +34,7 @@ const toActivityRow = (log: LogActividadResponse): ActivityRow => ({
   timestamp: log.fecha.replace('T', ' ').slice(0, 16),
 })
 
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
@@ -38,6 +42,9 @@ export default function AdminPage() {
   const navigate          = useNavigate()
 
   const PAGE_SIZE = 10
+
+  const reporteRef             = useRef<HTMLDivElement>(null)
+  const { generar, generando } = useGenerarPDF()
 
   const [search,   setSearch]   = useState('')
   const [activity, setActivity] = useState<ActivityRow[]>([])
@@ -68,6 +75,14 @@ export default function AdminPage() {
   const handleSearch = (value: string) => {
     setSearch(value)
     setPage(1)
+  }
+
+  const handleGenerarReporte = async () => {
+    if (!reporteRef.current) return
+    const mes    = new Date().toLocaleString('es-MX', { month: 'long', year: 'numeric' })
+    const titulo = `Bitácora de Actividad — ${mes.charAt(0).toUpperCase() + mes.slice(1)}`
+    await generar(reporteRef.current, titulo)
+    createReporte({ titulo, tipo: 'ACTIVIDAD' }).catch(() => {/* no bloquear si el back no está listo */})
   }
 
   return (
@@ -108,11 +123,34 @@ export default function AdminPage() {
               totalPages={totalPages}
               onChange={setPage}
             />
-            <GenerateReportButton />
+            <GenerateReportButton
+              onClick={handleGenerarReporte}
+              loading={generando}
+            />
           </div>
         </Card>
 
       </main>
+
+      {/* Contenido del PDF — fuera de pantalla, usa Tailwind + ActivityTable */}
+      <div
+        ref={reporteRef}
+        aria-hidden="true"
+        className="fixed top-0 bg-white p-8"
+        style={{ left: '-9999px', width: '1100px' }}
+      >
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-[var(--color-hi-navy)]">
+            Bitácora de Actividad
+          </h1>
+          <p className="text-sm text-[var(--color-hi-text-sub)] mt-1">
+            Generado por: {user?.name} {user?.lastName} &nbsp;·&nbsp; {new Date().toLocaleDateString('es-MX')}
+          </p>
+        </div>
+
+        <ActivityTable data={filtered} wrap />
+      </div>
+
     </div>
   )
 }

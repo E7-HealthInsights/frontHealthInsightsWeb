@@ -4,14 +4,13 @@ interface ReportCardProps {
   id: string
   title: string
   date: string
-  size: string
   onView: () => void
   onDownload: () => void
   onDelete: () => void
   className?: string
 }
 
-export default function ReportCard({ id, title, date, size, onView, onDownload, onDelete, className = '' }: ReportCardProps) {
+export default function ReportCard({ id, title, date, onView, onDownload, onDelete, className = '' }: ReportCardProps) {
   return (
     <div className={`bg-[var(--color-hi-surface)] rounded-[var(--radius-lg)] border border-[var(--color-hi-border)] p-5 flex flex-col gap-4 ${className}`}>
 
@@ -37,10 +36,6 @@ export default function ReportCard({ id, title, date, size, onView, onDownload, 
         <div className="flex justify-between">
           <span className="text-sm text-[var(--color-hi-text-sub)]">Fecha:</span>
           <span className="text-sm text-[var(--color-hi-text-main)]">{date}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-sm text-[var(--color-hi-text-sub)]">Tamaño:</span>
-          <span className="text-sm text-[var(--color-hi-text-main)]">{size}</span>
         </div>
       </div>
 
