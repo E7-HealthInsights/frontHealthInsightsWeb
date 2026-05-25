@@ -158,19 +158,6 @@ import type { FinanzasResultado } from '../../../types/FinanzasProyeccion'
             </dl>
           </Card>
    
-          <Button variant="primary" size="md"
-            className="w-full flex items-center justify-center gap-2"
-            onClick={() => alert('Generar reporte — próximamente')}>
-            <svg width="14" height="14" viewBox="0 0 15 15" fill="none"
-              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              <path d="M4 1h7l3 3v10H4V1z"/>
-              <path d="M10 1v3h3"/>
-              <line x1="6" y1="7" x2="10" y2="7"/>
-              <line x1="6" y1="10" x2="10" y2="10"/>
-            </svg>
-            Generar Reporte
-          </Button>
-
           {/* Editar */}
         <Button variant="secondary" size="md"
           className="w-full flex items-center justify-center gap-2"
