@@ -29,6 +29,7 @@ export default function App() {
               <Route path="/admin"          element={<AdminPage />} />
               <Route path="/admin/usuarios" element={<UsersPage />} />
               <Route path="/admin/datos"    element={<DatasetsAdminPage />} />
+              <Route path="/admin/reportes" element={<ReportesPage />} />
             </Route>
           </Route>
 

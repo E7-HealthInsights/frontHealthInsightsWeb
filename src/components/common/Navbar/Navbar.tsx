@@ -14,7 +14,7 @@ interface NavbarProps {
 
 export default function Navbar({ links, activePath, onLogout }: NavbarProps) {
   return (
-    <header className="w-full bg-[var(--color-hi-surface)] border-b border-[var(--color-hi-border)] px-6 h-16">
+    <header className="sticky top-0 z-50 w-full bg-[var(--color-hi-surface)] border-b border-[var(--color-hi-border)] px-6 h-16">
       <div className="max-w-7xl mx-auto h-full flex items-center justify-between gap-4">
 
         {/* Logo */}

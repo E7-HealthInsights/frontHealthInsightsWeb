@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
@@ -7,6 +6,7 @@ import { logout }      from '../services/authService'
 import { getActividad } from '../services/activityService'
 import type { LogActividadResponse } from '../services/activityService'
 
+import { debounce } from 'lodash'
 import { createReporte } from '../services/reportService'
 import { useGenerarPDF } from '../hooks/useGenerarPDF'
 
@@ -16,14 +16,14 @@ import SearchInput          from '../components/common/SearchInput/SearchInput'
 import ActivityTable, { type ActivityRow } from '../components/features/admins/ActivityTable/ActivityTable'
 import Pagination           from '../components/common/Pagination/Pagination'
 import GenerateReportButton from '../components/features/reports/GenerateReportButton/GenerateReportButton'
-import { debounce } from 'lodash'
 
 // ── Nav links ─────────────────────────────────────────────────────────────────
 
 const NAV_LINKS = [
-  { key: 'inicio',   label: 'Inicio',   path: '/admin'          },
-  { key: 'usuarios', label: 'Usuarios', path: '/admin/usuarios' },
-  { key: 'datos',    label: 'Datos',    path: '/admin/datos'    },
+  { key: 'inicio',    label: 'Inicio',    path: '/admin'          },
+  { key: 'usuarios',  label: 'Usuarios',  path: '/admin/usuarios' },
+  { key: 'datos',     label: 'Datos',     path: '/admin/datos'    },
+  { key: 'reportes',  label: 'Reportes',  path: '/admin/reportes' },
 ]
 
 // ── Mapper ────────────────────────────────────────────────────────────────────
@@ -48,34 +48,24 @@ export default function AdminPage() {
   const reporteRef             = useRef<HTMLDivElement>(null)
   const { generar, generando } = useGenerarPDF()
 
-  const [search,   setSearch]   = useState('')
-  const [activity, setActivity] = useState<ActivityRow[]>([])
-  const [page,     setPage]     = useState(1)
+  const [search,       setSearch]       = useState('')
+  const [activity,     setActivity]     = useState<ActivityRow[]>([])
+  const [page,         setPage]         = useState(1)
   const [totalPaginas, setTotalPaginas] = useState(1)
-  const [loading,     setLoading]     = useState(false)
 
   const fetchActividad = useCallback((p: number, s: string) => {
-    setLoading(true)
     getActividad(p, PAGE_SIZE, s)
       .then(res => {
         setActivity(res.data.map(toActivityRow))
         setTotalPaginas(res.totalPaginas)
       })
       .catch(err => console.error('Error al cargar actividad', err))
-      .finally(() => setLoading(false))
   }, [])
 
-  // Carga inicial y cuando cambia página
-  useEffect(() => {
-    fetchActividad(page, search)
-  }, [page])
+  useEffect(() => { fetchActividad(page, search) }, [page])
 
-  // Debounce para búsqueda — espera 400ms antes de llamar al back
   const debouncedSearch = useMemo(
-    () => debounce((value: string) => {
-      setPage(1)          // regresa a página 1 al buscar
-      fetchActividad(1, value)
-    }, 400),
+    () => debounce((value: string) => { setPage(1); fetchActividad(1, value) }, 400),
     [fetchActividad]
   )
 
@@ -87,20 +77,11 @@ export default function AdminPage() {
     navigate('/login', { replace: true })
   }
 
-  const filtered = activity.filter(row =>
-    search === '' ||
-    row.admin.toLowerCase().includes(search.toLowerCase())  ||
-    row.accion.toLowerCase().includes(search.toLowerCase()) ||
-    row.detalle.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = activity
 
   const handleSearch = (value: string) => {
     setSearch(value)
     debouncedSearch(value)
-  }
-
-  const handlePageChange = (newPage: number) => {  
-    setPage(newPage)
   }
 
   const handleGenerarReporte = async () => {
@@ -141,19 +122,13 @@ export default function AdminPage() {
             className="mb-4"
           />
 
-          {loading
-            ? <p className="text-sm text-[var(--color-hi-text-sub)] py-8 text-center">
-                Cargando actividad…
-              </p>
-            : <ActivityTable data={activity} />
-          }
-
+          <ActivityTable data={activity} />
 
           <div className="flex items-center justify-between mt-6">
             <Pagination
               currentPage={page}
               totalPages={totalPaginas}
-              onChange={handlePageChange}
+              onChange={setPage}
             />
             <GenerateReportButton
               onClick={handleGenerarReporte}
