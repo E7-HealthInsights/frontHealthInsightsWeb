@@ -1,7 +1,11 @@
-import { useState }             from 'react'
+import { useRef, useState }     from 'react'
 import { useNavigate }          from 'react-router-dom'
 import { useAuth }              from '../context/AuthContext'
 import { logout }               from '../services/authService'
+
+import { createReporte }        from '../services/reportService'
+import { useGenerarPDF }        from '../hooks/useGenerarPDF'
+import GenerateReportButton     from '../components/features/reports/GenerateReportButton/GenerateReportButton'
 
 import Navbar               from '../components/common/Navbar'
 import Card                 from '../components/common/Card/Card'
@@ -92,8 +96,8 @@ const resolveStatLabel = (titulo: string, data: StatWidgetData): string | undefi
 
 // ── WidgetRenderer ────────────────────────────────────────────────────────────
 
-function WidgetRenderer({ widget, onDelete }: { widget: WidgetDTO; onDelete: () => void }) {
-  const isDefault = !('usuario' in widget)
+function WidgetRenderer({ widget, onDelete, hideActions = false }: { widget: WidgetDTO; onDelete: () => void; hideActions?: boolean }) {
+  const isDefault = !('usuario' in widget) || hideActions
   const actions   = isDefault
     ? []
     : [{ label: 'Eliminar', onClick: onDelete, danger: true as const }]
@@ -343,6 +347,9 @@ export default function DashboardPage() {
   const [modalOpen,     setModalOpen]     = useState(false)
   const [fabSelection,  setFabSelection]  = useState<FABSelection | null>(null)
 
+  const reporteRef             = useRef<HTMLDivElement>(null)
+  const { generar, generando } = useGenerarPDF()
+
   const { data: widgets = [], isLoading, isError } = useQuery({
     queryKey: ['myWidgets'],
     queryFn:  getMyWidgets,
@@ -371,6 +378,14 @@ export default function DashboardPage() {
 
   const handleWidgetSaved = () => {
     queryClient.invalidateQueries({ queryKey: ['myWidgets'] })
+  }
+
+  const handleGenerarReporte = async () => {
+    if (!reporteRef.current) return
+    const mes    = new Date().toLocaleString('es-MX', { month: 'long', year: 'numeric' })
+    const titulo = `Dashboard ${user?.name} — ${mes.charAt(0).toUpperCase() + mes.slice(1)}`
+    await generar(reporteRef.current, titulo)
+    createReporte({ titulo, tipo: 'DASHBOARD' }).catch(() => {})
   }
 
   return (
@@ -415,26 +430,38 @@ export default function DashboardPage() {
         )}
 
         {/* Grid de widgets */}
-        {!isLoading && !isError && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {widgets.map(w => (
-              <WidgetRenderer
-                key={w.id}
-                widget={w}
-                onDelete={() => handleDelete(w.id)}
-              />
-            ))}
-          </div>
-        )}
+        <div>
+          {!isLoading && !isError && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {widgets.map(w => (
+                <WidgetRenderer
+                  key={w.id}
+                  widget={w}
+                  onDelete={() => handleDelete(w.id)}
+                />
+              ))}
+            </div>
+          )}
 
-        {/* Empty state */}
-        {!isLoading && !isError && widgets.length === 0 && (
-          <div className="flex flex-col items-center justify-center gap-3 py-16
-            rounded-[var(--radius-lg)] border border-dashed border-[var(--color-hi-border)]
-            bg-[var(--color-hi-surface)]">
-            <p className="text-sm text-[var(--color-hi-text-hint)]">
-              No hay widgets configurados aún.
-            </p>
+          {/* Empty state */}
+          {!isLoading && !isError && widgets.length === 0 && (
+            <div className="flex flex-col items-center justify-center gap-3 py-16
+              rounded-[var(--radius-lg)] border border-dashed border-[var(--color-hi-border)]
+              bg-[var(--color-hi-surface)]">
+              <p className="text-sm text-[var(--color-hi-text-hint)]">
+                No hay widgets configurados aún.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Botón fuera del ref para que no aparezca en el PDF */}
+        {!isLoading && !isError && widgets.length > 0 && (
+          <div className="flex justify-end mt-6">
+            <GenerateReportButton
+              onClick={handleGenerarReporte}
+              loading={generando}
+            />
           </div>
         )}
 
@@ -453,6 +480,34 @@ export default function DashboardPage() {
           onSaved={handleWidgetSaved}
         />
       )}
+
+      {/* Contenido del PDF — fuera de pantalla */}
+      <div
+        ref={reporteRef}
+        aria-hidden="true"
+        className="fixed top-0 bg-white p-8"
+        style={{ left: '-9999px', width: '1100px' }}
+      >
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-[var(--color-hi-navy)]">
+            Dashboard
+          </h1>
+          <p className="text-sm text-[var(--color-hi-text-sub)] mt-1">
+            Generado por: {user?.name} {user?.lastName} &nbsp;·&nbsp; {new Date().toLocaleDateString('es-MX')}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          {widgets.map(w => (
+            <WidgetRenderer
+              key={`pdf-${w.id}`}
+              widget={w}
+              onDelete={() => {}}
+              hideActions
+            />
+          ))}
+        </div>
+      </div>
 
     </div>
   )
