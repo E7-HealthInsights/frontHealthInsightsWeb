@@ -11,10 +11,17 @@ import ReportCard  from '../components/features/reports/ReportCard/ReportCard'
 
 // ── Nav links ─────────────────────────────────────────────────────────────────
 
-const NAV_LINKS = [
+const USER_NAV_LINKS = [
   { key: 'inicio',       label: 'Inicio',       path: '/'             },
   { key: 'proyecciones', label: 'Proyecciones', path: '/proyecciones' },
   { key: 'reportes',     label: 'Reportes',     path: '/reportes'     },
+]
+
+const ADMIN_NAV_LINKS = [
+  { key: 'inicio',   label: 'Inicio',   path: '/admin'          },
+  { key: 'usuarios', label: 'Usuarios', path: '/admin/usuarios' },
+  { key: 'datos',    label: 'Datos',    path: '/admin/datos'    },
+  { key: 'reportes', label: 'Reportes', path: '/admin/reportes' },
 ]
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -22,6 +29,8 @@ const NAV_LINKS = [
 export default function ReportesPage() {
   const { user, setUser } = useAuth()
   const navigate          = useNavigate()
+  const isAdmin           = user?.role === 'ADMINISTRADOR' || user?.role === 'ADMIN'
+  const navLinks          = isAdmin ? ADMIN_NAV_LINKS : USER_NAV_LINKS
 
   const [reportes, setReportes] = useState<ReporteResponse[]>([])
   const [loading,  setLoading]  = useState(true)
@@ -60,7 +69,7 @@ export default function ReportesPage() {
     <div className="min-h-screen bg-[var(--color-hi-bg)]">
 
       <Navbar
-        links={NAV_LINKS}
+        links={navLinks}
         activePath={window.location.pathname}
         onLogout={handleLogout}
       />
