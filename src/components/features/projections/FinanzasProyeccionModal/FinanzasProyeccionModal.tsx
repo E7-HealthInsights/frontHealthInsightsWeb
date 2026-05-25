@@ -3,12 +3,13 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
-import Modal  from '../../common/Modal/Modal'
-import Button from '../../common/Button/Button'
-import type { FinanzasResultado, RubroFinanzas } from '../../../types/FinanzasProyeccion'
-import type { Proyeccion } from '../../../types/Proyeccion'
-import { simularFinanzas, type SimulacionFinanzasResponse } from '../../../services/proyeccionService'
+
 import { debounce } from 'lodash'
+import Modal from '../../../common/Modal'
+import type { FinanzasResultado, RubroFinanzas } from '../../../../types/FinanzasProyeccion'
+import type { Proyeccion } from '../../../../types/Proyeccion'
+import { simularFinanzas, type SimulacionFinanzasResponse } from '../../../../services/proyeccionService'
+import Button from '../../../common/Button'
 
 
 // ─── Props ────────────────────────────────────────────────────────────────────

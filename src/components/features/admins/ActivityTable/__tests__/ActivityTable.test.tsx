@@ -3,14 +3,14 @@ import ActivityTable, { ActivityRow } from '../ActivityTable'
 
 const mockData: ActivityRow[] = [
   {
-    id: 1,
+    id: "1",
     admin: 'Santiago',
     accion: 'Usuario creado',
     detalle: 'Se creó un nuevo usuario',
     timestamp: '2026-05-18 10:00',
   },
   {
-    id: 2,
+    id: "2",
     admin: 'Ana',
     accion: 'Usuario eliminado',
     detalle: 'Se eliminó un usuario',

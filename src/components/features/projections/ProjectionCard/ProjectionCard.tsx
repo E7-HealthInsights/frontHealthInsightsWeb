@@ -1,9 +1,9 @@
-import Card              from '../../common/Card/Card'
-import Button            from '../../common/Button/Button'
-import ImpactBadge       from './ImpactBadge'
-import type { GeneralResultado } from '../../../types/GeneralProyeccion'
-import type { Proyeccion } from '../../../types/Proyeccion'
-import type { FinanzasResultado } from '../../../types/FinanzasProyeccion'
+import Card              from '../../../common/Card/Card'
+import Button            from '../../../common/Button/Button'
+import ImpactBadge       from '../ImpactBadge/ImpactBadge'
+import type { GeneralResultado } from '../../../../types/GeneralProyeccion'
+import type { Proyeccion } from '../../../../types/Proyeccion'
+import type { FinanzasResultado } from '../../../../types/FinanzasProyeccion'
 
 interface ProjectionCardProps {
   proyeccion: Proyeccion
@@ -63,8 +63,8 @@ export default function ProjectionCard({ proyeccion, onVer }: ProjectionCardProp
             </div>
           </div>
  
-          <div className="flex items-center gap-2 border-t border-[var(--color-hi-border)] pt-3">
-            <Button variant="secondary" size="sm"
+          <div className="flex items-center gap-2 border-t border-[var(--color-hi-border)] pt-3" data-testid="ver-detalle-btn">
+            <Button variant="secondary" size="sm" data-testid="ver-detalle-btn"
               onClick={() => onVer(proyeccion)}
               className="flex-1 flex items-center justify-center gap-1.5">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -121,7 +121,7 @@ export default function ProjectionCard({ proyeccion, onVer }: ProjectionCardProp
           </div>
         </div>
  
-        <div className="flex items-center gap-2 border-t border-[var(--color-hi-border)] pt-3">
+        <div className="flex items-center gap-2 border-t border-[var(--color-hi-border)] pt-3" data-testid="ver-detalle-btn"> 
           <Button variant="secondary" size="sm"
             onClick={() => onVer(proyeccion)}
             className="flex-1 flex items-center justify-center gap-1.5">
