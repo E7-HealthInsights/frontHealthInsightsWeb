@@ -57,11 +57,12 @@ export default function Modal({
       <div
         data-testid="modal-panel"
         className={`relative w-full ${sizeClasses[size]} bg-[var(--color-hi-surface)]
-          rounded-[var(--radius-lg)] p-6 shadow-xl`}
+          rounded-[var(--radius-lg)] shadow-xl
+          max-h-[calc(100vh-2rem)] flex flex-col`}
         onClick={e => e.stopPropagation()}       // evita que el click burbujee
       >
-        
-        <div className="flex items-start justify-between mb-5">
+
+        <div className="flex items-start justify-between px-6 pt-6 pb-5 shrink-0">
           <div>
             <h2 className="text-xl font-semibold text-[var(--color-hi-navy)]">
               {title}
@@ -91,7 +92,7 @@ export default function Modal({
         </div>
 
         
-        <div>{children}</div>
+        <div className="px-6 pb-6 overflow-y-auto flex-1 min-h-0">{children}</div>
       </div>
     </div>
   )
