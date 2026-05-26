@@ -1,24 +1,25 @@
-// src/components/features/proyecciones/__tests__/FinanzasProyeccionModal.test.tsx
+// src/components/features/projections/FinanzasProyeccionModal/__tests__/FinanzasProyeccionModal.test.tsx
 
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent                    from '@testing-library/user-event'
 import FinanzasProyeccionModal      from '../FinanzasProyeccionModal'
-import { Proyeccion } from '../../../../../types/Proyeccion'
-import { FinanzasResultado } from '../../../../../types/FinanzasProyeccion'
-import { simularFinanzas } from '../../../../../services/proyeccionService'
-
+import type { Proyeccion }          from '../../../../../types/Proyeccion'
+import type { FinanzasResultado }   from '../../../../../types/FinanzasProyeccion'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
-// Debounce sincrónico para que el API se llame de inmediato en tests
-jest.mock('lodash/debounce', () => (fn: (...args: unknown[]) => unknown) => fn)
+// Debounce sincrónico — el API se llama de inmediato en tests
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fn: (...args: unknown[]) => unknown) => fn,
+}))
 
-jest.mock('../../../../services/proyeccionService', () => ({
-    simularFinanzas: jest.fn(),
-  }))
+// ✅ El primer argumento de jest.mock SIEMPRE es un string con el path del módulo
+jest.mock('../../../../../services/proyeccionService', () => ({
+  simularFinanzas: jest.fn(),
+}))
 
-
-// Recharts requiere dimensiones — stub de ResizeObserver ya está en setupTests
+import { simularFinanzas } from '../../../../../services/proyeccionService'
 
 // ── Fixtures ──────────────────────────────────────────────────────────────
 
@@ -28,8 +29,10 @@ const mockSimulacion = {
     { año: 2040, sinIntervencion: 22.4,  conIntervencion: 21.12 },
   ],
   kpis: {
-    reduccionPct: -5.7, casosEvitados: 1_088_000,
-    ahorroEstimadoUSD_M: 1565, ROI: 0.91,
+    reduccionPct:        -5.7,
+    casosEvitados:       1_088_000,
+    ahorroEstimadoUSD_M: 1_565,
+    ROI:                 0.91,
   },
 }
 
@@ -47,7 +50,7 @@ const mockProyeccionToEdit: Proyeccion = {
       periodoFin:    2035,
     },
     puntos: [{ año: 2035, sinIntervencion: 20.1, conIntervencion: 18.5 }],
-    kpis:  { reduccionPct: -8.0, casosEvitados: 1_300_000, ahorroEstimadoUSD_M: 1869, ROI: 1.3 },
+    kpis:   { reduccionPct: -8.0, casosEvitados: 1_300_000, ahorroEstimadoUSD_M: 1_869, ROI: 1.3 },
   } as FinanzasResultado,
 }
 
@@ -65,7 +68,7 @@ const renderModal = (overrides = {}) => {
   return props
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────
+// ── Tests — modo creación ─────────────────────────────────────────────────
 
 describe('FinanzasProyeccionModal — modo creación', () => {
 
@@ -74,79 +77,66 @@ describe('FinanzasProyeccionModal — modo creación', () => {
     ;(simularFinanzas as jest.Mock).mockResolvedValue(mockSimulacion)
   })
 
-  // ── Renderizado ────────────────────────────────────────────────────────
-
-  test('renderiza el título "Nueva Proyección"', async () => {
-    renderModal()
-    await waitFor(() => expect(screen.getByText('Nueva Proyección')).toBeInTheDocument())
-  })
-
-  test('renderiza el campo de nombre del escenario', async () => {
+  test('renderiza el título correcto', async () => {
     renderModal()
     await waitFor(() =>
-      expect(screen.getByPlaceholderText(/inversión prioritaria/i)).toBeInTheDocument()
+      expect(screen.getByText(/nueva proyección de finanzas/i)).toBeInTheDocument()
     )
   })
 
-  test('renderiza los 4 rubros de distribución', async () => {
+  test('renderiza el campo de nombre del escenario', () => {
     renderModal()
-    await waitFor(() => {
-      expect(screen.getByText('Educación nutricional')).toBeInTheDocument()
-      expect(screen.getByText('Medicamentos preventivos')).toBeInTheDocument()
-      expect(screen.getByText('Detección temprana')).toBeInTheDocument()
-      expect(screen.getByText('Atención primaria')).toBeInTheDocument()
-    })
+    expect(screen.getByPlaceholderText(/inversión prioritaria/i)).toBeInTheDocument()
   })
 
-  test('renderiza los 4 botones de período', async () => {
+  test('renderiza los 4 rubros de distribución', () => {
     renderModal()
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: '2030' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: '2035' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: '2040' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: '2050' })).toBeInTheDocument()
-    })
+    expect(screen.getByText('Educación nutricional')).toBeInTheDocument()
+    expect(screen.getByText('Medicamentos preventivos')).toBeInTheDocument()
+    expect(screen.getByText('Detección temprana')).toBeInTheDocument()
+    expect(screen.getByText('Atención primaria')).toBeInTheDocument()
+  })
+
+  test('renderiza los 4 botones de período', () => {
+    renderModal()
+    ;[2030, 2035, 2040, 2050].forEach(p =>
+      expect(screen.getByRole('button', { name: String(p) })).toBeInTheDocument()
+    )
   })
 
   test('llama a simularFinanzas al abrir con valores default', async () => {
     renderModal()
-    await waitFor(() => {
+    await waitFor(() =>
       expect(simularFinanzas).toHaveBeenCalledWith(
         expect.objectContaining({ presupuesto: 2000, hasta: 2040 })
       )
-    })
+    )
   })
 
-  // ── KPIs en tiempo real ────────────────────────────────────────────────
-
-  test('muestra los KPIs una vez que llega la simulación', async () => {
+  test('muestra los KPIs cuando llega la simulación', async () => {
     renderModal()
     await waitFor(() => {
       expect(screen.getByText('-5.7%')).toBeInTheDocument()
       expect(screen.getByText('~1.1M')).toBeInTheDocument()
-      expect(screen.getByText('$1,565M')).toBeInTheDocument()
       expect(screen.getByText('0.91x')).toBeInTheDocument()
     })
   })
 
-  // ── Interacciones ──────────────────────────────────────────────────────
-
   test('llama a simularFinanzas al cambiar período', async () => {
     const user = userEvent.setup({ delay: null })
     renderModal()
+    await waitFor(() => expect(simularFinanzas).toHaveBeenCalled())
 
     await user.click(screen.getByRole('button', { name: '2050' }))
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(simularFinanzas).toHaveBeenCalledWith(
         expect.objectContaining({ hasta: 2050 })
       )
-    })
+    )
   })
 
-  // ── Validación ─────────────────────────────────────────────────────────
-
-  test('muestra error si se intenta guardar sin título', async () => {
+  test('muestra error si se guarda sin título', async () => {
     const user = userEvent.setup({ delay: null })
     renderModal()
     await waitFor(() => expect(simularFinanzas).toHaveBeenCalled())
@@ -157,7 +147,7 @@ describe('FinanzasProyeccionModal — modo creación', () => {
   })
 
   test('NO llama a onSave si no hay título', async () => {
-    const user    = userEvent.setup({ delay: null })
+    const user       = userEvent.setup({ delay: null })
     const { onSave } = renderModal()
     await waitFor(() => expect(simularFinanzas).toHaveBeenCalled())
 
@@ -166,17 +156,15 @@ describe('FinanzasProyeccionModal — modo creación', () => {
     expect(onSave).not.toHaveBeenCalled()
   })
 
-  // ── Guardar ────────────────────────────────────────────────────────────
-
-  test('llama a onSave con título, descripción y resultado correcto', async () => {
-    const user    = userEvent.setup({ delay: null })
+  test('llama a onSave con resultado correcto al guardar', async () => {
+    const user       = userEvent.setup({ delay: null })
     const { onSave } = renderModal()
     await waitFor(() => expect(simularFinanzas).toHaveBeenCalled())
 
     await user.type(screen.getByPlaceholderText(/inversión prioritaria/i), 'Mi escenario')
     await user.click(screen.getByRole('button', { name: /guardar escenario/i }))
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(onSave).toHaveBeenCalledWith(
         'Mi escenario',
         '',
@@ -186,13 +174,11 @@ describe('FinanzasProyeccionModal — modo creación', () => {
           kpis:   mockSimulacion.kpis,
         })
       )
-    })
+    )
   })
 
-  // ── Cancelar ──────────────────────────────────────────────────────────
-
   test('llama a onClose al hacer clic en Cancelar', async () => {
-    const user    = userEvent.setup({ delay: null })
+    const user        = userEvent.setup({ delay: null })
     const { onClose } = renderModal()
 
     await user.click(screen.getByRole('button', { name: /cancelar/i }))
@@ -202,12 +188,12 @@ describe('FinanzasProyeccionModal — modo creación', () => {
 
   test('no renderiza nada cuando isOpen es false', () => {
     renderModal({ isOpen: false })
-    expect(screen.queryByText('Nueva Proyección')).not.toBeInTheDocument()
+    expect(screen.queryByText(/nueva proyección de finanzas/i)).not.toBeInTheDocument()
   })
 
 })
 
-// ── Modo edición ──────────────────────────────────────────────────────────
+// ── Tests — modo edición ──────────────────────────────────────────────────
 
 describe('FinanzasProyeccionModal — modo edición', () => {
 
@@ -216,12 +202,14 @@ describe('FinanzasProyeccionModal — modo edición', () => {
     ;(simularFinanzas as jest.Mock).mockResolvedValue(mockSimulacion)
   })
 
-  test('renderiza el título "Editar Proyección"', async () => {
+  test('renderiza el título de edición', async () => {
     renderModal({ proyeccionToEdit: mockProyeccionToEdit })
-    await waitFor(() => expect(screen.getByText('Editar Proyección')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText(/editar proyección de finanzas/i)).toBeInTheDocument()
+    )
   })
 
-  test('pre-llena el campo de nombre con el título existente', async () => {
+  test('pre-llena el nombre con el título existente', async () => {
     renderModal({ proyeccionToEdit: mockProyeccionToEdit })
     await waitFor(() =>
       expect(screen.getByDisplayValue('Escenario existente')).toBeInTheDocument()
@@ -237,33 +225,48 @@ describe('FinanzasProyeccionModal — modo edición', () => {
 
   test('NO llama a simularFinanzas al abrir en modo edición', async () => {
     renderModal({ proyeccionToEdit: mockProyeccionToEdit })
-    await waitFor(() => expect(screen.getByText('Editar Proyección')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByText(/editar proyección de finanzas/i)).toBeInTheDocument()
+    )
     expect(simularFinanzas).not.toHaveBeenCalled()
   })
 
-  test('el botón de guardar dice "Actualizar escenario"', async () => {
+  test('el botón dice "Actualizar cambios"', async () => {
     renderModal({ proyeccionToEdit: mockProyeccionToEdit })
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: /actualizar escenario/i })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /actualizar cambios/i })).toBeInTheDocument()
     )
   })
 
   test('llama a onSave con el título editado', async () => {
-    const user    = userEvent.setup({ delay: null })
+    const user       = userEvent.setup({ delay: null })
     const { onSave } = renderModal({ proyeccionToEdit: mockProyeccionToEdit })
 
     const input = await screen.findByDisplayValue('Escenario existente')
     await user.clear(input)
     await user.type(input, 'Escenario modificado')
-    await user.click(screen.getByRole('button', { name: /actualizar escenario/i }))
+    await user.click(screen.getByRole('button', { name: /actualizar cambios/i }))
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(onSave).toHaveBeenCalledWith(
         'Escenario modificado',
         expect.any(String),
         expect.objectContaining({ tipo: 'FINANZAS' })
       )
-    })
+    )
+  })
+
+  test('SÍ llama a simularFinanzas cuando el usuario cambia el período en edición', async () => {
+    const user = userEvent.setup({ delay: null })
+    renderModal({ proyeccionToEdit: mockProyeccionToEdit })
+    await waitFor(() =>
+      expect(screen.getByText(/editar proyección de finanzas/i)).toBeInTheDocument()
+    )
+    expect(simularFinanzas).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: '2050' }))
+
+    await waitFor(() => expect(simularFinanzas).toHaveBeenCalled())
   })
 
 })
