@@ -9,7 +9,7 @@ export default function CronogramaCard({ items }: CronogramaCardProps) {
   if (!items?.length) return null
   const sorted = [...items].sort((a, b) => a.mes - b.mes)
   return (
-    <Card title="Cronograma" subtitle="Hitos clave por mes" className="md:col-span-2">
+    <Card title="Cronograma" subtitle="Hitos clave por mes">
       <ol className="flex flex-col gap-3 list-none p-0 m-0">
         {sorted.map((item, i) => (
           <li key={i} className="flex items-start gap-3">

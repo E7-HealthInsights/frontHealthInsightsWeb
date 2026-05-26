@@ -21,7 +21,7 @@ interface PrioridadesCardProps {
 export default function PrioridadesCard({ prioridades }: PrioridadesCardProps) {
   if (!prioridades?.length) return null
   return (
-    <Card title="Prioridades por zona" subtitle="Ordenadas por severidad" className="md:col-span-2">
+    <Card title="Prioridades por zona" subtitle="Ordenadas por severidad">
       <ul className="flex flex-col gap-3 list-none p-0 m-0">
         {prioridades.map((p, i) => (
           <li
