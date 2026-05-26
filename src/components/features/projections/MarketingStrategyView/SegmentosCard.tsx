@@ -22,8 +22,8 @@ function groupByTipo(canales: CanalDTO[]): Map<ChannelTipo, CanalDTO[]> {
 export default function SegmentosCard({ segmentos }: SegmentosCardProps) {
   if (!segmentos?.length) return null
   return (
-    <Card title="Segmentos objetivo" subtitle="Audiencias priorizadas y canales sugeridos" className="md:col-span-3">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Card title="Segmentos objetivo" subtitle="Audiencias priorizadas y canales sugeridos">
+      <div className="flex flex-col gap-4">
         {segmentos.map((s, i) => {
           const grouped = groupByTipo(s.canales_recomendados ?? [])
           const orderedKeys = CHANNEL_ORDER.filter(k => grouped.has(k))

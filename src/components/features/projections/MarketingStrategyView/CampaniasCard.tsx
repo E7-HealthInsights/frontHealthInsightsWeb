@@ -32,8 +32,8 @@ function TacticaRow({ t }: { t: TacticaDTO }) {
 export default function CampaniasCard({ campanias }: CampaniasCardProps) {
   if (!campanias?.length) return null
   return (
-    <Card title="Campañas propuestas" subtitle="Cada campaña con sus tácticas concretas y peso presupuestal" className="md:col-span-3">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Card title="Campañas propuestas" subtitle="Cada campaña con sus tácticas concretas y peso presupuestal">
+      <div className="flex flex-col gap-4">
         {campanias.map((c, i) => (
           <article
             key={`${c.titulo}-${i}`}

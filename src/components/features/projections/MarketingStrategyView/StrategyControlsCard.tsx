@@ -84,7 +84,7 @@ export default function StrategyControlsCard({
     <Card
       title="Seguimiento y comentarios"
       subtitle="Marca si esta estrategia se ejecutó y deja contexto para la siguiente generación"
-      className="md:col-span-3"
+      className="md:col-span-full"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 

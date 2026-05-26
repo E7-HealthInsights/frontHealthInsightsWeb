@@ -18,7 +18,7 @@ const formatPresupuesto = (n: number | null): string => {
 export default function ContextoCard({ contexto }: ContextoCardProps) {
   if (!contexto) return null
   return (
-    <Card title="Contexto analizado" subtitle="Inputs interpretados por la IA" className="md:col-span-3">
+    <Card title="Contexto analizado" subtitle="Inputs interpretados por la IA" className="md:col-span-full">
       <div className="flex flex-wrap gap-4">
 
         <div className="flex flex-col gap-1">

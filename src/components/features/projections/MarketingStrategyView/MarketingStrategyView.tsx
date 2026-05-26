@@ -30,19 +30,24 @@ export default function MarketingStrategyView({
 }: MarketingStrategyViewProps) {
   const p = dto.payload
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 auto-rows-min">
       <ResumenCard
         resumen={p.resumen_ejecutivo}
         proximaRevisionDias={p.proxima_revision_dias}
         creadoEn={dto.creadoEn}
       />
       <ContextoCard      contexto={p.contexto_analizado} />
+
+      {/* Pareadas: ambas son listas detalladas y largas */}
       <PrioridadesCard   prioridades={p.prioridades} />
+      <CronogramaCard    items={p.cronograma} />
+
+      {/* Pareadas: ambas son listas cortas de bullets */}
       <OportunidadesCard oportunidades={p.oportunidades} />
+      <RiesgosCard       riesgos={p.riesgos} />
+
       <SegmentosCard     segmentos={p.segmentos_objetivo} />
       <CampaniasCard     campanias={p.campanias} />
-      <CronogramaCard    items={p.cronograma} />
-      <RiesgosCard       riesgos={p.riesgos} />
 
       <StrategyControlsCard
         strategy={dto}

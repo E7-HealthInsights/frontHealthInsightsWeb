@@ -22,7 +22,7 @@ const formatDate = (iso: string): string => {
 
 export default function ResumenCard({ resumen, proximaRevisionDias, creadoEn }: ResumenCardProps) {
   return (
-    <Card title="Resumen ejecutivo" className="md:col-span-3">
+    <Card title="Resumen ejecutivo" className="md:col-span-full">
       <p className="text-sm text-[var(--color-hi-text-main)] leading-relaxed">
         {resumen}
       </p>
