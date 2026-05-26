@@ -1,32 +1,41 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth }     from '../context/AuthContext'
 import { logout }      from '../services/authService'
+
+import { getActividad } from '../services/activityService'
+import type { LogActividadResponse } from '../services/activityService'
+
+import { debounce } from 'lodash'
+import { createReporte } from '../services/reportService'
+import { useGenerarPDF } from '../hooks/useGenerarPDF'
 
 import Navbar               from '../components/common/Navbar'
 import Card                 from '../components/common/Card'
 import SearchInput          from '../components/common/SearchInput/SearchInput'
 import ActivityTable, { type ActivityRow } from '../components/features/admins/ActivityTable/ActivityTable'
+import Pagination           from '../components/common/Pagination/Pagination'
 import GenerateReportButton from '../components/features/reports/GenerateReportButton/GenerateReportButton'
 
 // ── Nav links ─────────────────────────────────────────────────────────────────
 
 const NAV_LINKS = [
-  { key: 'inicio',   label: 'Inicio',   path: '/admin'          },
-  { key: 'usuarios', label: 'Usuarios', path: '/admin/usuarios' },
-  { key: 'datos',    label: 'Datos',    path: '/admin/datos'    },
+  { key: 'inicio',    label: 'Inicio',    path: '/admin'          },
+  { key: 'usuarios',  label: 'Usuarios',  path: '/admin/usuarios' },
+  { key: 'datos',     label: 'Datos',     path: '/admin/datos'    },
+  { key: 'reportes',  label: 'Reportes',  path: '/admin/reportes' },
 ]
 
-// ── Datos mock ────────────────────────────────────────────────────────────────
+// ── Mapper ────────────────────────────────────────────────────────────────────
 
-const MOCK_ACTIVITY: ActivityRow[] = [
-  { id: 1, admin: 'María López',  accion: 'Usuario creado',    detalle: 'Alta de nuevo usuario operativo',  timestamp: '2026-04-22 09:14' },
-  { id: 2, admin: 'Carlos Ruiz',  accion: 'Dataset editado',   detalle: 'Corrección de valores atípicos',   timestamp: '2026-04-22 10:02' },
-  { id: 3, admin: 'María López',  accion: 'Usuario eliminado', detalle: 'Cuenta duplicada eliminada',       timestamp: '2026-04-21 16:45' },
-  { id: 4, admin: 'Ana Martínez', accion: 'Dataset creado',    detalle: 'Carga inicial de datos 2026',      timestamp: '2026-04-21 14:30' },
-  { id: 5, admin: 'Carlos Ruiz',  accion: 'Usuario editado',   detalle: 'Cambio de rol a supervisor',       timestamp: '2026-04-20 11:55' },
-  { id: 6, admin: 'Ana Martínez', accion: 'Dataset eliminado', detalle: 'Dataset desactualizado removido',  timestamp: '2026-04-19 08:22' },
-]
+const toActivityRow = (log: LogActividadResponse): ActivityRow => ({
+  id:        log.id,
+  admin:     log.adminNombre ?? '—',
+  accion:    log.accion,
+  detalle:   log.detalle ?? '',
+  timestamp: log.fecha.replace('T', ' ').slice(0, 16),
+})
+
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -34,7 +43,33 @@ export default function AdminPage() {
   const { user, setUser } = useAuth()
   const navigate          = useNavigate()
 
-  const [search, setSearch] = useState('')
+  const PAGE_SIZE = 10
+
+  const reporteRef             = useRef<HTMLDivElement>(null)
+  const { generar, generando } = useGenerarPDF()
+
+  const [search,       setSearch]       = useState('')
+  const [activity,     setActivity]     = useState<ActivityRow[]>([])
+  const [page,         setPage]         = useState(1)
+  const [totalPaginas, setTotalPaginas] = useState(1)
+
+  const fetchActividad = useCallback((p: number, s: string) => {
+    getActividad(p, PAGE_SIZE, s)
+      .then(res => {
+        setActivity(res.data.map(toActivityRow))
+        setTotalPaginas(res.totalPaginas)
+      })
+      .catch(err => console.error('Error al cargar actividad', err))
+  }, [])
+
+  useEffect(() => { fetchActividad(page, search) }, [page])
+
+  const debouncedSearch = useMemo(
+    () => debounce((value: string) => { setPage(1); fetchActividad(1, value) }, 400),
+    [fetchActividad]
+  )
+
+  useEffect(() => () => debouncedSearch.cancel(), [debouncedSearch])
 
   const handleLogout = async () => {
     await logout()
@@ -42,12 +77,20 @@ export default function AdminPage() {
     navigate('/login', { replace: true })
   }
 
-  const filtered = MOCK_ACTIVITY.filter(row =>
-    search === '' ||
-    row.admin.toLowerCase().includes(search.toLowerCase())   ||
-    row.accion.toLowerCase().includes(search.toLowerCase())  ||
-    row.detalle.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = activity
+
+  const handleSearch = (value: string) => {
+    setSearch(value)
+    debouncedSearch(value)
+  }
+
+  const handleGenerarReporte = async () => {
+    if (!reporteRef.current) return
+    const mes    = new Date().toLocaleString('es-MX', { month: 'long', year: 'numeric' })
+    const titulo = `Bitácora de Actividad — ${mes.charAt(0).toUpperCase() + mes.slice(1)}`
+    await generar(reporteRef.current, titulo)
+    createReporte({ titulo, tipo: 'ACTIVIDAD' }).catch(() => {/* no bloquear si el back no está listo */})
+  }
 
   return (
     <div className="min-h-screen bg-[var(--color-hi-bg)]">
@@ -74,19 +117,47 @@ export default function AdminPage() {
         <Card title="Actividad reciente">
           <SearchInput
             value={search}
-            onChange={setSearch}
+            onChange={handleSearch}
             placeholder="Buscar actividad…"
             className="mb-4"
           />
 
-          <ActivityTable data={filtered} />
+          <ActivityTable data={activity} />
 
-          <div className="flex justify-end mt-6">
-            <GenerateReportButton />
+          <div className="flex items-center justify-between mt-6">
+            <Pagination
+              currentPage={page}
+              totalPages={totalPaginas}
+              onChange={setPage}
+            />
+            <GenerateReportButton
+              onClick={handleGenerarReporte}
+              loading={generando}
+            />
           </div>
         </Card>
 
       </main>
+
+      {/* Contenido del PDF — fuera de pantalla, usa Tailwind + ActivityTable */}
+      <div
+        ref={reporteRef}
+        aria-hidden="true"
+        className="fixed top-0 bg-white p-8"
+        style={{ left: '-9999px', width: '1100px' }}
+      >
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-[var(--color-hi-navy)]">
+            Bitácora de Actividad
+          </h1>
+          <p className="text-sm text-[var(--color-hi-text-sub)] mt-1">
+            Generado por: {user?.name} {user?.lastName} &nbsp;·&nbsp; {new Date().toLocaleDateString('es-MX')}
+          </p>
+        </div>
+
+        <ActivityTable data={filtered} wrap />
+      </div>
+
     </div>
   )
 }

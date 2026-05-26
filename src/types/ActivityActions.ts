@@ -2,6 +2,8 @@ export type ActivityAction =
   | 'Usuario creado'
   | 'Usuario editado'
   | 'Usuario eliminado'
+  | 'Usuario desactivado'
+  | 'Usuario reactivado'
   | 'Dataset creado'
   | 'Dataset editado'
   | 'Dataset eliminado'

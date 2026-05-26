@@ -5,6 +5,8 @@ import Dropdown from '../../../common/Dropdown/Dropdown'
 import { getMetricasByDataset, type MetricaOption } from '../../../../services/datasetService'
 import {
   sanitizeFiltroVal,
+  TIPO_SEMANTICO_LABEL,
+  NIVEL_GEOGRAFICO_LABEL,
   type WidgetTipo,
   type QueryConfig,
   type QueryConfigStat,
@@ -12,8 +14,16 @@ import {
   type QueryConfigPie,
   type QueryConfigTable,
   type QueryConfigMultiseries,
+  type TipoSemantico,
+  type NivelGeografico,
 } from '../../../../services/widgetService'
 import type { ElementType } from '../FAB/FAB'
+
+const TIPO_SEMANTICO_OPTS = (Object.keys(TIPO_SEMANTICO_LABEL) as TipoSemantico[])
+  .map(v => ({ value: v, label: TIPO_SEMANTICO_LABEL[v] }))
+
+const NIVEL_GEOGRAFICO_OPTS = (Object.keys(NIVEL_GEOGRAFICO_LABEL) as NivelGeografico[])
+  .map(v => ({ value: v, label: NIVEL_GEOGRAFICO_LABEL[v] }))
 
 // ── Tipos internos ─────────────────────────────────────────────────────────────
 
@@ -172,6 +182,10 @@ export default function GenerateElementModal({
   const [filtroVal,   setFiltroVal]   = useState('')
   const [filtroValErr, setFiltroValErr] = useState('')
 
+  // Metadatos semánticos para que la IA interprete bien el widget
+  const [tipoSemantico,   setTipoSemantico]   = useState<TipoSemantico   | ''>('')
+  const [nivelGeografico, setNivelGeografico] = useState<NivelGeografico | ''>('')
+
   // Datos del backend
   const [metricas,        setMetricas]        = useState<MetricaOption[]>([])
   const [loadingMetricas, setLoadingMetricas] = useState(false)
@@ -263,10 +277,12 @@ export default function GenerateElementModal({
       const queryConfig = buildQueryConfig(tipo, nombreTabla, allFields)
 
       await createWidget({
-        titulo:      titulo.trim(),
+        titulo:           titulo.trim(),
         tipo,
         queryConfig,
-        orden:       currentWidgetCount + 1,
+        orden:            currentWidgetCount + 1,
+        tipoSemantico:    tipoSemantico   || undefined,
+        nivelGeografico:  nivelGeografico || undefined,
       })
 
       onSaved()
@@ -288,6 +304,8 @@ export default function GenerateElementModal({
     setFiltroVal('')
     setFiltroValErr('')
     setShowFilter(false)
+    setTipoSemantico('')
+    setNivelGeografico('')
     setMetricas([])
     setSaveErr(null)
     onClose()
@@ -546,6 +564,40 @@ export default function GenerateElementModal({
               </div>
             )}
           </div>
+        )}
+
+        {/* Metadatos para la IA — opcional pero recomendado */}
+        {tipo && (
+          <section className="
+            flex flex-col gap-3 p-4
+            rounded-[var(--radius-md)]
+            border border-dashed border-[var(--color-hi-border)]
+            bg-[var(--color-hi-surface)]
+          ">
+            <div>
+              <span className="text-sm font-semibold text-[var(--color-hi-text-sub)]">
+                Metadatos para IA <span className="text-[var(--color-hi-text-hint)] font-normal">(opcional)</span>
+              </span>
+              <p className="text-[11px] text-[var(--color-hi-text-hint)] mt-0.5 leading-snug">
+                Si este widget se usa para generar estrategias de mercadotecnia, indica cómo
+                debe interpretarse el número y a qué nivel geográfico corresponde.
+              </p>
+            </div>
+            <Dropdown
+              label="¿Qué representa el valor?"
+              placeholder="Selecciona el tipo de métrica…"
+              options={TIPO_SEMANTICO_OPTS}
+              value={tipoSemantico}
+              onChange={v => setTipoSemantico(v as TipoSemantico)}
+            />
+            <Dropdown
+              label="Nivel geográfico"
+              placeholder="Selecciona el nivel…"
+              options={NIVEL_GEOGRAFICO_OPTS}
+              value={nivelGeografico}
+              onChange={v => setNivelGeografico(v as NivelGeografico)}
+            />
+          </section>
         )}
 
         {/* Error de guardado */}

@@ -94,11 +94,11 @@ export const Interactivo: Story = {
     const [result, setResult]   = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
 
-    const handleConfirm = async (justificacion: string) => {
+    const handleConfirm = async (justification: string) => {
       setLoading(true)
       await new Promise(r => setTimeout(r, 1200))
       setLoading(false)
-      setResult(justificacion)
+      setResult(justification)
       setOpen(false)
     }
 

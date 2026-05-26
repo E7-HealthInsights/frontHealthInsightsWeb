@@ -31,6 +31,7 @@ const NAV_LINKS = [
   { key: 'inicio',   label: 'Inicio',   path: '/admin'          },
   { key: 'usuarios', label: 'Usuarios', path: '/admin/usuarios' },
   { key: 'datos',    label: 'Datos',    path: '/admin/datos'    },
+  { key: 'reportes', label: 'Reportes', path: '/admin/reportes' },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────────

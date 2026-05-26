@@ -11,8 +11,9 @@ export type Column<T> = {
   interface DataTableProps<T> {
     columns:    Column<T>[]
     data:       T[]
-    emptyText?: string            // mensaje cuando no hay datos
+    emptyText?: string
     className?: string
+    fixed?:     boolean
   }
   
   //una vil y tipica tabla html, con estilos y opciones para personalizar columnas y celdas. 
@@ -24,10 +25,11 @@ export type Column<T> = {
     data,
     emptyText = 'No hay datos disponibles.',
     className = '',
+    fixed     = false,
   }: DataTableProps<T>) {
     return (
       <div className={`w-full overflow-x-auto ${className}`}>
-        <table className="w-full text-sm border-collapse">
+        <table className={`w-full text-sm border-collapse ${fixed ? 'table-fixed' : ''}`}>
   
           
           <thead>

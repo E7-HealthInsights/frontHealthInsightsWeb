@@ -28,6 +28,7 @@ export interface UploadDatasetPayload {
   descripcion:    string
   fuente:         string
   columnMappings: ColumnMapping[]
+  justification:  string
 }
 
 export type DatasetEstado = 'PENDING' | 'PROCESSING' | 'READY' | 'ERROR'
@@ -85,6 +86,7 @@ export async function uploadDataset(payload: UploadDatasetPayload): Promise<Uplo
     fuente:          payload.fuente ?? '',
     archivoNombre:   payload.file.name,
     archivoCsvBase64,
+    justification:  payload.justification,
     columnas: payload.columnMappings.map(m => ({
       originalName: m.originalName,
       displayName:  m.displayName,

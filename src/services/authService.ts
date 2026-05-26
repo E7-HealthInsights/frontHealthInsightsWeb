@@ -2,11 +2,7 @@ import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import axios from 'axios'
 import { auth } from '../lib/firebase'
 
-const API_URL =
-  import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
-
-// const API_URL = (globalThis as Record<string, unknown>).importMetaEnv?.VITE_API_URL as string
-//   ?? 'http://localhost:8080'
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
 
 export interface UserProfile {
   id:       string
@@ -37,14 +33,26 @@ export async function login(email: string, password: string): Promise<UserProfil
       timeout: 10000,
     })
     console.log('[login] 3/3 ✅ /auth/me response:', response.status, response.data)
+
+    if (response.data.status === false) {
+      console.warn('[login] usuario inactivo, cerrando sesión de Firebase')
+      await signOut(auth)
+      localStorage.removeItem('idToken')
+      throw new Error('Tu cuenta está inactiva. Contacta al administrador.')
+    }
+
     return response.data
 
   } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Tu cuenta está inactiva')) {
+      throw error
+    }
     console.error('[login] 3/3 ❌ /auth/me failed:', error)
     if (axios.isAxiosError(error)) {
-      console.error('[login]    status:', error.response?.status, 'data:', error.response?.data, 'code:', error.code)
+      console.error('[login]    status:', error.response?.status,
+          'data:', error.response?.data, 'code:', error.code)
     }
-    await signOut(auth) // limpiamos sesión de Firebase si el back falla
+    await signOut(auth)
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       throw new Error('Tu cuenta no tiene acceso a esta plataforma.')
     }
