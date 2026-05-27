@@ -6,14 +6,13 @@ import type { WidgetTipo } from '../../../../services/widgetService'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
-export type ElementType = 'indicador' | 'grafica' | 'tabla' | 'mapa'
+export type ElementType = 'indicador' | 'grafica' | 'tabla'
 
 // Mapping de ElementType → tipos de widget que produce
 export const ELEMENT_TO_TIPOS: Record<ElementType, WidgetTipo[]> = {
   indicador: ['STAT'],
   grafica:   ['LINE', 'BAR', 'PIE', 'MULTISERIES', 'MULTIBAR'],
   tabla:     ['TABLE'],
-  mapa:      ['TABLE'], // placeholder; el mapa usa TABLE por ahora
 }
 
 export interface FABSelection {
@@ -79,21 +78,6 @@ const elementOptions: ElementOption[] = [
         <line x1="3"  y1="9"  x2="21" y2="9"  />
         <line x1="3"  y1="15" x2="21" y2="15" />
         <line x1="9"  y1="3"  x2="9"  y2="21" />
-      </svg>
-    ),
-  },
-  {
-    type:        'mapa',
-    label:       'Mapa',
-    description: 'Distribución geográfica por estado',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
-        <line x1="9"  y1="3"  x2="9"  y2="18" />
-        <line x1="15" y1="6"  x2="15" y2="21" />
       </svg>
     ),
   },
@@ -203,7 +187,7 @@ export default function FAB({ onGenerate, className = '' }: FABProps) {
               <span className="text-sm font-semibold text-[var(--color-hi-text-sub)]">
                 Tipo de elemento
               </span>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {elementOptions.map(opt => (
                   <button
                     key={opt.type}

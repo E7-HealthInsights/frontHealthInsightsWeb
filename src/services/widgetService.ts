@@ -78,6 +78,7 @@ export interface WidgetDTO {
   tipo:             WidgetTipo
   tipoSemantico?:   TipoSemantico | null
   nivelGeografico?: NivelGeografico | null
+  esDefault:        boolean
   data:             WidgetData
 }
 
@@ -218,6 +219,15 @@ export async function getMyWidgets(): Promise<WidgetDTO[]> {
 
 export async function deleteWidget(id: string): Promise<void> {
   await api.delete(`/widgets/${id}`)
+}
+
+export interface WidgetOrdenItem {
+  id:    string
+  orden: number
+}
+
+export async function updateWidgetOrden(items: WidgetOrdenItem[]): Promise<void> {
+  await api.patch('/widgets/orden', items)
 }
 
 export async function createWidget(payload: CreateWidgetPayload): Promise<WidgetDTO> {

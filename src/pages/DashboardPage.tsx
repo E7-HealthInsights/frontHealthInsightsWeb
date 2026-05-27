@@ -1,7 +1,23 @@
-import { useRef, useState }     from 'react'
+import { useRef, useState, useCallback } from 'react'
 import { useNavigate }          from 'react-router-dom'
 import { useAuth }              from '../context/AuthContext'
 import { logout }               from '../services/authService'
+
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 import { createReporte }        from '../services/reportService'
 import { useGenerarPDF }        from '../hooks/useGenerarPDF'
@@ -19,6 +35,7 @@ import type { ElementType, FABSelection } from '../components/features/dashboard
 import {
   getMyWidgets,
   deleteWidget,
+  updateWidgetOrden,
   isChartData,
   isErrorData,
   isMultiSeriesData,
@@ -97,7 +114,7 @@ const resolveStatLabel = (titulo: string, data: StatWidgetData): string | undefi
 // ── WidgetRenderer ────────────────────────────────────────────────────────────
 
 function WidgetRenderer({ widget, onDelete, hideActions = false }: { widget: WidgetDTO; onDelete: () => void; hideActions?: boolean }) {
-  const isDefault = !('usuario' in widget) || hideActions
+  const isDefault = widget.esDefault || hideActions
   const actions   = isDefault
     ? []
     : [{ label: 'Eliminar', onClick: onDelete, danger: true as const }]
@@ -106,10 +123,20 @@ function WidgetRenderer({ widget, onDelete, hideActions = false }: { widget: Wid
   if (isErrorData(widget.data)) {
     return (
       <div className="bg-[var(--color-hi-surface)] border border-[var(--color-hi-border)]
-        rounded-[var(--radius-lg)] p-5">
-        <p className="text-xs font-semibold text-[var(--color-hi-text-main)] mb-2">
-          {widget.titulo}
-        </p>
+        rounded-[var(--radius-lg)] p-5 flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-xs font-semibold text-[var(--color-hi-text-main)]">
+            {widget.titulo}
+          </p>
+          {actions.length > 0 && (
+            <button
+              onClick={onDelete}
+              className="text-xs text-[var(--color-hi-danger)] hover:underline shrink-0"
+            >
+              Eliminar
+            </button>
+          )}
+        </div>
         <p className="text-xs text-[var(--color-hi-danger)]">{widget.data.error}</p>
       </div>
     )
@@ -123,6 +150,7 @@ function WidgetRenderer({ widget, onDelete, hideActions = false }: { widget: Wid
         subtitle={widget.subtitulo}
         value={formatStatValue(widget.data.value)}
         label={resolveStatLabel(widget.titulo, widget.data)}
+        actions={actions}
       />
     )
   }
@@ -337,6 +365,26 @@ function WidgetRenderer({ widget, onDelete, hideActions = false }: { widget: Wid
   return null
 }
 
+// ── SortableWidget — wrapper para drag & drop de widgets personales ───────────
+
+function SortableWidget({ widget, onDelete }: { widget: WidgetDTO; onDelete: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: widget.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity:   isDragging ? 0.5 : 1,
+    cursor:    'grab',
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <WidgetRenderer widget={widget} onDelete={onDelete} />
+    </div>
+  )
+}
+
 // ── DashboardPage ─────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -355,6 +403,42 @@ export default function DashboardPage() {
     queryFn:  getMyWidgets,
     staleTime: 5 * 60 * 1000,
   })
+
+  // ── Drag & drop ───────────────────────────────────────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
+
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    // Leemos el estado actual directo del cache para evitar dependencia en el closure
+    const current        = queryClient.getQueryData<WidgetDTO[]>(['myWidgets']) ?? []
+    const personalWidgets = current.filter(w => !w.esDefault)
+    const oldIndex = personalWidgets.findIndex(w => w.id === active.id)
+    const newIndex = personalWidgets.findIndex(w => w.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(personalWidgets, oldIndex, newIndex)
+
+    // Actualización optimista: reasignar orden consecutivo
+    const items = reordered.map((w, i) => ({ id: w.id, orden: i + 1 }))
+    queryClient.setQueryData<WidgetDTO[]>(['myWidgets'], prev => {
+      if (!prev) return prev
+      const defaults = prev.filter(w => w.esDefault)
+      const updated  = items.map(item => {
+        const widget = prev.find(w => w.id === item.id)!
+        return { ...widget, orden: item.orden }
+      })
+      return [...defaults, ...updated]
+    })
+
+    // Persistir en backend (silencioso — si falla, el próximo refresh corrige)
+    updateWidgetOrden(items).catch(() => {
+      queryClient.invalidateQueries({ queryKey: ['myWidgets'] })
+    })
+  }, [queryClient])
 
   const handleLogout = async () => {
     await logout()
@@ -431,17 +515,60 @@ export default function DashboardPage() {
 
         {/* Grid de widgets */}
         <div>
-          {!isLoading && !isError && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {widgets.map(w => (
-                <WidgetRenderer
-                  key={w.id}
-                  widget={w}
-                  onDelete={() => handleDelete(w.id)}
-                />
-              ))}
-            </div>
-          )}
+          {!isLoading && !isError && (() => {
+            const defaultWidgets  = widgets.filter(w => w.esDefault)
+            const personalWidgets = widgets.filter(w => !w.esDefault)
+            return (
+              <>
+                {/* Widgets del rol */}
+                {defaultWidgets.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {defaultWidgets.map(w => (
+                      <WidgetRenderer
+                        key={w.id}
+                        widget={w}
+                        onDelete={() => handleDelete(w.id)}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Separador — solo si hay widgets personales */}
+                {personalWidgets.length > 0 && (
+                  <div className="flex items-center gap-3 mt-8 mb-4">
+                    <span className="text-sm font-semibold text-[var(--color-hi-text-sub)] whitespace-nowrap">
+                      Mis widgets
+                    </span>
+                    <div className="flex-1 h-px bg-[var(--color-hi-border)]" />
+                  </div>
+                )}
+
+                {/* Widgets personales */}
+                {personalWidgets.length > 0 && (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={personalWidgets.map(w => w.id)}
+                      strategy={rectSortingStrategy}
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        {personalWidgets.map(w => (
+                          <SortableWidget
+                            key={w.id}
+                            widget={w}
+                            onDelete={() => handleDelete(w.id)}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
+              </>
+            )
+          })()}
 
           {/* Empty state */}
           {!isLoading && !isError && widgets.length === 0 && (
