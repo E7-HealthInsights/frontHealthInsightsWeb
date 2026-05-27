@@ -123,10 +123,20 @@ function WidgetRenderer({ widget, onDelete, hideActions = false }: { widget: Wid
   if (isErrorData(widget.data)) {
     return (
       <div className="bg-[var(--color-hi-surface)] border border-[var(--color-hi-border)]
-        rounded-[var(--radius-lg)] p-5">
-        <p className="text-xs font-semibold text-[var(--color-hi-text-main)] mb-2">
-          {widget.titulo}
-        </p>
+        rounded-[var(--radius-lg)] p-5 flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-xs font-semibold text-[var(--color-hi-text-main)]">
+            {widget.titulo}
+          </p>
+          {actions.length > 0 && (
+            <button
+              onClick={onDelete}
+              className="text-xs text-[var(--color-hi-danger)] hover:underline shrink-0"
+            >
+              Eliminar
+            </button>
+          )}
+        </div>
         <p className="text-xs text-[var(--color-hi-danger)]">{widget.data.error}</p>
       </div>
     )
@@ -140,6 +150,7 @@ function WidgetRenderer({ widget, onDelete, hideActions = false }: { widget: Wid
         subtitle={widget.subtitulo}
         value={formatStatValue(widget.data.value)}
         label={resolveStatLabel(widget.titulo, widget.data)}
+        actions={actions}
       />
     )
   }
