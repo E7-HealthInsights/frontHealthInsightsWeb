@@ -10,7 +10,7 @@ import ProyeccionDetalle    from '../../components/features/projections/Proyecci
 import GenerateReportButton from '../../components/features/reports/GenerateReportButton/GenerateReportButton'
 import { useGenerarPDF }    from '../../hooks/useGenerarPDF'
 import { createReporte }    from '../../services/reportService'
-import ProjectionCard from '../../components/features/projections/ProjectionCard'
+import ProjectionCard from '../../components/features/projections/ProjectionCard/ProjectionCard'
 import GeneralProyeccionModal from '../../components/features/projections/GeneralProyeccionModal'
 import type { Proyeccion } from '../../types/Proyeccion'
 import Modal from '../../components/common/Modal'

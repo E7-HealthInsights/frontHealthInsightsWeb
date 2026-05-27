@@ -328,7 +328,7 @@ export default function GeneralProyeccionModal({
                   label={{ value: 'Millones', angle: -90, position: 'insideLeft', offset: 4, style: AXIS_LABEL_STYLE }}
                 />
                 <Tooltip
-                  formatter={(value: number) => [`${value}M personas`, '']}
+                  formatter={(value) => [`${String(value)}M personas`, '']}
                   contentStyle={{
                     background: 'var(--color-hi-surface)',
                     border: '1px solid var(--color-hi-border)',

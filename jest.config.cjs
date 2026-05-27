@@ -7,6 +7,8 @@ module.exports = {
 
   moduleNameMapper: {
     '\\.(css|less|scss)$': '<rootDir>/src/__mocks__/styleMock.cjs',
+    '^jspdf$':       '<rootDir>/src/__mocks__/jspdfMock.cjs',
+    '^html2canvas$': '<rootDir>/src/__mocks__/html2canvasMock.cjs',
   },
 
   testMatch: [
