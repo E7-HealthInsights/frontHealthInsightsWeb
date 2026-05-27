@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
@@ -7,6 +7,9 @@ import Navbar  from '../components/common/Navbar/Navbar'
 import Button  from '../components/common/Button/Button'
 import { useAuth } from '../context/AuthContext'
 import { logout } from '../services/authService'
+import { useGenerarPDF } from '../hooks/useGenerarPDF'
+import { createReporte } from '../services/reportService'
+import GenerateReportButton from '../components/features/reports/GenerateReportButton/GenerateReportButton'
 
 import {
   generateStrategy,
@@ -46,9 +49,12 @@ function parseErrorMessage(err: unknown): string {
 }
 
 export default function MarketingProjectionsPage() {
-  const { setUser } = useAuth()
-  const navigate    = useNavigate()
-  const queryClient = useQueryClient()
+  const { user, setUser } = useAuth()
+  const navigate          = useNavigate()
+  const queryClient       = useQueryClient()
+
+  const reporteRef              = useRef<HTMLDivElement>(null)
+  const { generar, generando }  = useGenerarPDF()
 
   const [selectedId,   setSelectedId]   = useState<string | null>(null)
   const [historyOpen,  setHistoryOpen]  = useState(false)
@@ -128,6 +134,14 @@ export default function MarketingProjectionsPage() {
     await commentMutation.mutateAsync({ id: currentStrategy.id, contenido })
   }
 
+  const handleGenerarReporte = async () => {
+    if (!reporteRef.current || !currentStrategy) return
+    const mes    = new Date().toLocaleString('es-MX', { month: 'long', year: 'numeric' })
+    const titulo = `Estrategia de Mercadotecnia — ${mes.charAt(0).toUpperCase() + mes.slice(1)}`
+    await generar(reporteRef.current, titulo)
+    createReporte({ titulo, tipo: 'PROYECCION', referenciaId: currentStrategy.id }).catch(() => {})
+  }
+
   return (
     <div className="min-h-screen bg-[var(--color-hi-bg)]">
       <Navbar
@@ -150,23 +164,31 @@ export default function MarketingProjectionsPage() {
               concretas (espectaculares, radio, redes, etc.) adaptadas a tu segmento.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="secondary"
-              size="md"
-              onClick={() => setHistoryOpen(true)}
-              disabled={isLoading || (historyQuery.data?.length ?? 0) === 0}
-            >
-              Ver historial
-            </Button>
-            <Button
-              variant="primary"
-              size="md"
-              loading={mutation.isPending}
-              onClick={() => setGenerateOpen(true)}
-            >
-              {currentStrategy ? 'Generar nueva estrategia' : 'Generar estrategia'}
-            </Button>
+          <div className="flex flex-col items-end gap-3">
+            {currentStrategy && !mutation.isPending && (
+              <GenerateReportButton
+                onClick={handleGenerarReporte}
+                loading={generando}
+              />
+            )}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="secondary"
+                size="md"
+                onClick={() => setHistoryOpen(true)}
+                disabled={isLoading || (historyQuery.data?.length ?? 0) === 0}
+              >
+                Ver historial
+              </Button>
+              <Button
+                variant="primary"
+                size="md"
+                loading={mutation.isPending}
+                onClick={() => setGenerateOpen(true)}
+              >
+                {currentStrategy ? 'Generar nueva estrategia' : 'Generar estrategia'}
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -244,6 +266,29 @@ export default function MarketingProjectionsPage() {
         )}
 
       </main>
+
+      {currentStrategy && (
+        <div
+          ref={reporteRef}
+          aria-hidden="true"
+          className="fixed top-0 bg-white p-8"
+          style={{ left: '-9999px', width: '1100px' }}
+        >
+          <div className="mb-6">
+            <h1 className="text-xl font-bold text-[var(--color-hi-navy)]">
+              Estrategia de Mercadotecnia
+            </h1>
+            <p className="text-sm text-[var(--color-hi-text-sub)] mt-1">
+              Generado por: {user?.name} {user?.lastName} &nbsp;·&nbsp; {new Date().toLocaleDateString('es-MX')}
+            </p>
+          </div>
+          <MarketingStrategyView
+            dto={currentStrategy}
+            onUpdateState={async () => {}}
+            onAddComment={async () => {}}
+          />
+        </div>
+      )}
 
       <StrategyHistoryModal
         isOpen={historyOpen}
