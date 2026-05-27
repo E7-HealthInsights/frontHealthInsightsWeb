@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import Modal    from '../../../common/Modal/Modal'
 import Button   from '../../../common/Button/Button'
 import Dropdown from '../../../common/Dropdown/Dropdown'
-import { getMetricasByDataset, type MetricaOption } from '../../../../services/datasetService'
+import { getMetricasByDataset, getValoresDistintos, type MetricaOption } from '../../../../services/datasetService'
 import {
   sanitizeFiltroVal,
   TIPO_SEMANTICO_LABEL,
@@ -43,7 +43,6 @@ const SUBTIPOS_BY_ELEMENT: Record<ElementType, SubtipoOption[]> = {
     { tipo: 'MULTIBAR',    label: 'Multiseries (barras)'},
   ],
   tabla:     [{ tipo: 'TABLE',       label: 'Tabla de datos'      }],
-  mapa:      [{ tipo: 'TABLE',       label: 'Tabla de datos'      }], // placeholder
 }
 
 // Funciones de agregación disponibles
@@ -182,6 +181,11 @@ export default function GenerateElementModal({
   const [filtroVal,   setFiltroVal]   = useState('')
   const [filtroValErr, setFiltroValErr] = useState('')
 
+  // Valores distintos para el filtro inteligente
+  const [valoresDistintos,        setValoresDistintos]        = useState<string[]>([])
+  const [loadingValores,          setLoadingValores]          = useState(false)
+  const [usarDropdownFiltro,      setUsarDropdownFiltro]      = useState(false)
+
   // Metadatos semánticos para que la IA interprete bien el widget
   const [tipoSemantico,   setTipoSemantico]   = useState<TipoSemantico   | ''>('')
   const [nivelGeografico, setNivelGeografico] = useState<NivelGeografico | ''>('')
@@ -214,7 +218,34 @@ export default function GenerateElementModal({
     setFiltroCol('')
     setFiltroVal('')
     setShowFilter(false)
+    setValoresDistintos([])
+    setUsarDropdownFiltro(false)
   }, [tipo])
+
+  // Carga valores distintos cuando el usuario elige una columna de filtro
+  useEffect(() => {
+    if (!filtroCol || !datasetId) {
+      setValoresDistintos([])
+      setUsarDropdownFiltro(false)
+      setFiltroVal('')
+      return
+    }
+    setLoadingValores(true)
+    setFiltroVal('')
+    getValoresDistintos(datasetId, filtroCol)
+      .then(({ valores, total }) => {
+        setValoresDistintos(valores)
+        // Si el backend devolvió menos de 50 → los tenemos todos → dropdown
+        // Si devolvió exactamente 50 → puede haber más → input libre con ejemplo
+        setUsarDropdownFiltro(total < 50)
+      })
+      .catch(() => {
+        // Si falla, caemos al input libre sin ejemplo
+        setValoresDistintos([])
+        setUsarDropdownFiltro(false)
+      })
+      .finally(() => setLoadingValores(false))
+  }, [filtroCol, datasetId])
 
   // ── Helpers de columnas ────────────────────────────────────────────────────
 
@@ -434,7 +465,6 @@ export default function GenerateElementModal({
     indicador: 'Indicador',
     grafica:   'Gráfica',
     tabla:     'Tabla',
-    mapa:      'Mapa',
   }
 
   const subtipoOpts = subtiposDisponibles.map(s => ({ value: s.tipo, label: s.label }))
@@ -503,7 +533,7 @@ export default function GenerateElementModal({
           <div className="flex flex-col gap-3">
             <button
               type="button"
-              onClick={() => { setShowFilter(v => !v); setFiltroCol(''); setFiltroVal('') }}
+              onClick={() => { setShowFilter(v => !v); setFiltroCol(''); setFiltroVal(''); setValoresDistintos([]); setUsarDropdownFiltro(false) }}
               className="flex items-center gap-1.5 text-xs text-[var(--color-hi-primary)] hover:underline cursor-pointer w-fit"
             >
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
@@ -533,33 +563,52 @@ export default function GenerateElementModal({
                   value={filtroCol}
                   onChange={setFiltroCol}
                 />
+
                 {filtroCol && (
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-sm font-semibold text-[var(--color-hi-text-sub)]">
-                      Valor del filtro
-                    </label>
-                    <input
-                      type="text"
+                  loadingValores ? (
+                    <p className="text-xs text-[var(--color-hi-text-hint)]">Cargando valores…</p>
+                  ) : usarDropdownFiltro ? (
+                    /* Dropdown — columna tiene menos de 50 valores distintos */
+                    <Dropdown
+                      label="Valor del filtro"
+                      placeholder="Selecciona un valor…"
+                      options={valoresDistintos.map(v => ({ value: v, label: v }))}
                       value={filtroVal}
-                      onChange={e => handleFiltroValChange(e.target.value)}
-                      placeholder='Ej: "2024", "Jalisco", "Both sexes"'
-                      className={`
-                        w-full px-3 py-2 text-sm rounded-[var(--radius-md)]
-                        border bg-[var(--color-hi-surface)]
-                        text-[var(--color-hi-text-main)]
-                        placeholder:text-[var(--color-hi-text-hint)]
-                        focus:outline-none focus:ring-2 focus:ring-[var(--color-hi-primary)]/20
-                        transition-colors
-                        ${filtroValErr
-                          ? 'border-[var(--color-hi-danger)] focus:border-[var(--color-hi-danger)]'
-                          : 'border-[var(--color-hi-border)] focus:border-[var(--color-hi-border-focus)]'
-                        }
-                      `}
+                      onChange={setFiltroVal}
                     />
-                    {filtroValErr && (
-                      <p className="text-xs text-[var(--color-hi-danger)]">{filtroValErr}</p>
-                    )}
-                  </div>
+                  ) : (
+                    /* Input libre — columna con muchos valores o numérica */
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-sm font-semibold text-[var(--color-hi-text-sub)]">
+                        Valor del filtro
+                      </label>
+                      <input
+                        type="text"
+                        value={filtroVal}
+                        onChange={e => handleFiltroValChange(e.target.value)}
+                        placeholder={
+                          valoresDistintos.length > 0
+                            ? `Ej: "${valoresDistintos[0]}"`
+                            : 'Ej: "2024", "Jalisco", "Both sexes"'
+                        }
+                        className={`
+                          w-full px-3 py-2 text-sm rounded-[var(--radius-md)]
+                          border bg-[var(--color-hi-surface)]
+                          text-[var(--color-hi-text-main)]
+                          placeholder:text-[var(--color-hi-text-hint)]
+                          focus:outline-none focus:ring-2 focus:ring-[var(--color-hi-primary)]/20
+                          transition-colors
+                          ${filtroValErr
+                            ? 'border-[var(--color-hi-danger)] focus:border-[var(--color-hi-danger)]'
+                            : 'border-[var(--color-hi-border)] focus:border-[var(--color-hi-border-focus)]'
+                          }
+                        `}
+                      />
+                      {filtroValErr && (
+                        <p className="text-xs text-[var(--color-hi-danger)]">{filtroValErr}</p>
+                      )}
+                    </div>
+                  )
                 )}
               </div>
             )}
