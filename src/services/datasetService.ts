@@ -59,6 +59,25 @@ export async function getMetricasByDataset(datasetId: string): Promise<MetricaOp
   return res.data
 }
 
+export interface ValoresDistintosResponse {
+  valores: string[]
+  total:   number
+}
+
+/**
+ * Obtiene hasta 50 valores distintos de una columna para mostrar en el filtro.
+ * Si total <= 50 → dropdown; si total == 50 → input libre (puede haber más valores).
+ */
+export async function getValoresDistintos(
+  datasetId: string,
+  columna:   string,
+): Promise<ValoresDistintosResponse> {
+  const res = await api.get<ValoresDistintosResponse>(
+    `/datasets/${datasetId}/metricas/${columna}/valores-distintos`
+  )
+  return res.data
+}
+
 /**
  * Consulta el estado de procesamiento de un dataset.
  * Se usa en el loop de polling mientras el ingest está en curso.
