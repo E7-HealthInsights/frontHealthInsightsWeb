@@ -10,8 +10,11 @@ import type { FinanzasResultado }   from '../../../../../types/FinanzasProyeccio
 
 // Debounce sincrónico — el API se llama de inmediato en tests
 jest.mock('lodash', () => ({
-  ...jest.requireActual('lodash'),
-  debounce: (fn: (...args: unknown[]) => unknown) => fn,
+  debounce: (fn: Function) => {
+    const wrapped = (...args: unknown[]) => fn(...args)
+    wrapped.cancel = jest.fn()
+    return wrapped
+  },
 }))
 
 // ✅ El primer argumento de jest.mock SIEMPRE es un string con el path del módulo

@@ -67,7 +67,7 @@ interface GeneralProyeccionDetalleProps {
                   label={{ value: 'Millones', angle: -90, position: 'insideLeft', offset: 4, style: AXIS_LABEL_STYLE }}
                 />
                 <Tooltip
-                  formatter={(v: number) => [`${v}M personas`, '']}
+                  formatter={(v) => [`${v ?? 0}M personas`, '']}
                   contentStyle={{
                     background: 'var(--color-hi-surface)',
                     border: '1px solid var(--color-hi-border)',
@@ -138,7 +138,7 @@ interface GeneralProyeccionDetalleProps {
           </Card>
    
         {/* Editar */}
-        <Button variant="secondary" size="md"
+        <Button variant="secondary" size="md" data-testid="editar-btn-detalle"
           className="w-full flex items-center justify-center gap-2"
           onClick={() => onEditar(proyeccion)}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
@@ -150,7 +150,7 @@ interface GeneralProyeccionDetalleProps {
         </Button>
  
         {/* Eliminar */}
-        <Button variant="secondary" size="md"
+        <Button variant="secondary" size="md" data-testid="eliminar-btn-detalle"
           className="w-full flex items-center justify-center gap-2
             text-[var(--color-hi-danger)] hover:border-[var(--color-hi-danger)]"
           onClick={() => onEliminar(proyeccion.id)}>
