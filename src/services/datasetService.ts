@@ -3,16 +3,16 @@ import api from '../lib/api'
 export interface DatasetOption {
   id:          string
   nombre:      string
-  nombreTabla: string   // nombre real de la tabla en BD, usado en queryConfig
+  nombreTabla: string
   descripcion: string
   fuente:      string
 }
 
 export interface MetricaOption {
-  id:        string
-  nombre:    string
+  id:         string
+  nombre:     string
   columnaCsv: string
-  unidad:    string | null
+  unidad:     string | null
 }
 
 export interface ColumnMapping {
@@ -31,6 +31,24 @@ export interface UploadDatasetPayload {
   justification:  string
 }
 
+export type DatasetEstado = 'PENDING' | 'PROCESSING' | 'READY' | 'ERROR'
+
+export interface DatasetStatusResponse {
+  id:           string
+  estado:       DatasetEstado
+  errorMensaje: string
+}
+
+/** Respuesta del 202 al hacer upload */
+export interface UploadAcceptedResponse {
+  id:      string
+  estado:  DatasetEstado
+  nombre:  string
+  message: string
+}
+
+// ── Queries ───────────────────────────────────────────────────────────────────
+
 export async function getDatasets(): Promise<DatasetOption[]> {
   const res = await api.get<DatasetOption[]>('/datasets')
   return res.data
@@ -42,12 +60,24 @@ export async function getMetricasByDataset(datasetId: string): Promise<MetricaOp
 }
 
 /**
- * Sube un CSV con su metadata y definición de columnas al backend.
- * El archivo se convierte a base64 y se envía como JSON puro,
- * evitando así la necesidad de multipart en el backend.
+ * Consulta el estado de procesamiento de un dataset.
+ * Se usa en el loop de polling mientras el ingest está en curso.
  */
-export async function uploadDataset(payload: UploadDatasetPayload): Promise<DatasetOption> {
-  // Convertir el File a base64
+export async function getDatasetStatus(datasetId: string): Promise<DatasetStatusResponse> {
+  const res = await api.get<DatasetStatusResponse>(`/datasets/${datasetId}/status`)
+  return res.data
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+
+/**
+ * Sube un CSV con su metadata al backend.
+ *
+ * El backend responde 202 Accepted con el id del dataset creado.
+ * El ingest real ocurre de forma asíncrona — usar {@link pollDatasetStatus}
+ * para saber cuándo terminó.
+ */
+export async function uploadDataset(payload: UploadDatasetPayload): Promise<UploadAcceptedResponse> {
   const archivoCsvBase64 = await fileToBase64(payload.file)
 
   const body = {
@@ -65,11 +95,57 @@ export async function uploadDataset(payload: UploadDatasetPayload): Promise<Data
     })),
   }
 
-  // Timeout mayor para CSVs grandes (60 s)
-  const res = await api.post<DatasetOption>('/datasets/upload', body, {
-    timeout: 60_000,
+  const res = await api.post<UploadAcceptedResponse>('/datasets/upload', body, {
+    timeout: 30_000, // solo sube a GCS y publica Kafka — mucho más rápido que antes
   })
   return res.data
+}
+
+/**
+ * Hace polling a /datasets/{id}/status hasta que el estado sea READY o ERROR.
+ *
+ * @param datasetId  id del dataset a monitorear
+ * @param onStatus   callback llamado con cada respuesta de status
+ * @param intervalMs intervalo de polling en milisegundos (default: 3000)
+ * @param timeoutMs  timeout total antes de abortar (default: 5 minutos)
+ * @returns el status final (READY o ERROR)
+ */
+export function pollDatasetStatus(
+  datasetId:  string,
+  onStatus:   (status: DatasetStatusResponse) => void,
+  intervalMs: number = 3000,
+  timeoutMs:  number = 5 * 60 * 1000
+): Promise<DatasetStatusResponse> {
+  return new Promise((resolve, reject) => {
+    const start  = Date.now()
+    let timerId: ReturnType<typeof setInterval>
+
+    const check = async () => {
+      // Timeout total
+      if (Date.now() - start > timeoutMs) {
+        clearInterval(timerId)
+        reject(new Error('El procesamiento del dataset superó el tiempo máximo de espera.'))
+        return
+      }
+
+      try {
+        const status = await getDatasetStatus(datasetId)
+        onStatus(status)
+
+        if (status.estado === 'READY' || status.estado === 'ERROR') {
+          clearInterval(timerId)
+          resolve(status)
+        }
+      } catch (err) {
+        // No abortar en errores transitorios de red — solo loguear
+        console.warn('Error en polling de status, reintentando...', err)
+      }
+    }
+
+    // Primera consulta inmediata, luego cada intervalMs
+    check()
+    timerId = setInterval(check, intervalMs)
+  })
 }
 
 // ── Utilidad privada ──────────────────────────────────────────────────────────
@@ -79,9 +155,7 @@ function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader()
     reader.onload  = () => {
       const result = reader.result as string
-      // El resultado es "data:text/csv;base64,XXXX..." — extraemos solo la parte base64
-      const base64 = result.split(',')[1]
-      resolve(base64)
+      resolve(result.split(',')[1])
     }
     reader.onerror = () => reject(new Error('No se pudo leer el archivo CSV'))
     reader.readAsDataURL(file)

@@ -140,6 +140,7 @@ export default function UsersPage() {
       email:         payload.correo,
       password:      payload.password,
       roleId:        payload.roleId,
+      status:        payload.estatus === 'Activo',
       justification: payload.justification,
     })
     setUsers(prev => [...prev, toUser(created)])

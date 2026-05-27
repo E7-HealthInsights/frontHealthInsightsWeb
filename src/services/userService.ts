@@ -7,6 +7,7 @@ export interface CreateUserPayload {
   email:         string
   password:      string
   roleId:        number
+  status:        boolean
   justification: string
 }
 
