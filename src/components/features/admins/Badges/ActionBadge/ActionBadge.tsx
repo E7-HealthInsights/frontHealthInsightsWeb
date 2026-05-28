@@ -15,6 +15,8 @@ interface ActionBadgeProps {
     'Dataset creado':      { classes: 'bg-green-100 text-green-700' },
     'Dataset editado':     { classes: 'bg-[var(--color-hi-primary-soft)] text-[var(--color-hi-navy-light)]' },
     'Dataset eliminado':   { classes: 'bg-red-100 text-red-600' },
+    'Dataset desactivado': { classes: 'bg-red-100 text-red-600' },
+    'Dataset reactivado':  { classes: 'bg-green-100 text-green-700' },
   }
 
   const matchKey = (action: string): ActivityAction | undefined =>

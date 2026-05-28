@@ -126,7 +126,7 @@ export default function FAB({ onGenerate, className = '' }: FABProps) {
     setErrorDatasets(null)
   }
 
-  const datasetOpts = datasets.map(d => ({ value: d.id, label: d.nombre }))
+  const datasetOpts = datasets.filter(d => d.estado !== 'INACTIVE').map(d => ({ value: d.id, label: d.nombre }))
   const canConfirm  = !!datasetId && !!selected
 
   // ── Render ────────────────────────────────────────────────────────────────

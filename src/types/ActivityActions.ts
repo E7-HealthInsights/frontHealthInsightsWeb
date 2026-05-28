@@ -7,3 +7,5 @@ export type ActivityAction =
   | 'Dataset creado'
   | 'Dataset editado'
   | 'Dataset eliminado'
+  | 'Dataset desactivado'
+  | 'Dataset reactivado'

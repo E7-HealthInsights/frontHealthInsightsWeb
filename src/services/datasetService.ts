@@ -6,6 +6,7 @@ export interface DatasetOption {
   nombreTabla: string
   descripcion: string
   fuente:      string
+  estado:      DatasetEstado
 }
 
 export interface MetricaOption {
@@ -31,7 +32,7 @@ export interface UploadDatasetPayload {
   justification:  string
 }
 
-export type DatasetEstado = 'PENDING' | 'PROCESSING' | 'READY' | 'ERROR'
+export type DatasetEstado = 'PENDING' | 'PROCESSING' | 'READY' | 'ERROR' | 'INACTIVE'
 
 export interface DatasetStatusResponse {
   id:           string
@@ -52,6 +53,14 @@ export interface UploadAcceptedResponse {
 export async function getDatasets(): Promise<DatasetOption[]> {
   const res = await api.get<DatasetOption[]>('/datasets')
   return res.data
+}
+
+export async function deactivateDataset(id: string, justification: string): Promise<void> {
+  await api.patch(`/datasets/${id}/desactivar`, { justification })
+}
+
+export async function reactivateDataset(id: string, justification: string): Promise<void> {
+  await api.patch(`/datasets/${id}/reactivar`, { justification })
 }
 
 export async function getMetricasByDataset(datasetId: string): Promise<MetricaOption[]> {
