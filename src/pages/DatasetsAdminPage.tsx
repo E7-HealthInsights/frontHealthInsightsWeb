@@ -4,17 +4,19 @@ import { useAuth } from '../context/AuthContext'
 import { logout } from '../services/authService'
 import {
   getDatasets,
+  deactivateDataset,
+  reactivateDataset,
   uploadDataset,
   pollDatasetStatus,
   type DatasetOption,
-  type DatasetEstado,
   type UploadDatasetPayload,
 } from '../services/datasetService'
 
-import Navbar             from '../components/common/Navbar'
-import Button             from '../components/common/Button'
-import SearchInput        from '../components/common/SearchInput/SearchInput'
-import UploadDatasetModal from '../components/features/datasets/UploadDatasetModal'
+import Navbar              from '../components/common/Navbar'
+import Button              from '../components/common/Button'
+import SearchInput         from '../components/common/SearchInput/SearchInput'
+import UploadDatasetModal  from '../components/features/datasets/UploadDatasetModal'
+import ConfirmActionModal  from '../components/features/admins/ConfirmActionModal/ConfirmActionModal'
 
 // ── Tipos ──────────────────────────────────────────────────────────────────────
 
@@ -107,7 +109,17 @@ function ProcessingCard({ dataset }: { dataset: ProcessingDataset }) {
 
 // ── Dataset card ───────────────────────────────────────────────────────────────
 
-function DatasetCard({ dataset }: { dataset: DatasetOption }) {
+function DatasetCard({
+  dataset,
+  onDeactivate,
+  onActivate,
+  toggling,
+}: {
+  dataset:      DatasetOption
+  onDeactivate: (dataset: DatasetOption) => void
+  onActivate:   (dataset: DatasetOption) => void
+  toggling:     boolean
+}) {
   return (
     <div className="bg-[var(--color-hi-surface)] rounded-[var(--radius-lg)]
                     border border-[var(--color-hi-border)] p-5 flex flex-col gap-4">
@@ -123,9 +135,17 @@ function DatasetCard({ dataset }: { dataset: DatasetOption }) {
             <path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>
           </svg>
         </div>
-        <span className="text-xs text-[var(--color-hi-text-hint)] font-mono">
-          {dataset.id.slice(0, 6).toUpperCase()}
-        </span>
+        <div className="flex items-center gap-2">
+          {dataset.estado === 'INACTIVE' && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full
+                             bg-red-100 text-[var(--color-hi-danger)]">
+              Inactivo
+            </span>
+          )}
+          <span className="text-xs text-[var(--color-hi-text-hint)] font-mono">
+            {dataset.id?.slice(0, 6).toUpperCase() ?? '—'}
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-col gap-1 flex-1">
@@ -150,30 +170,41 @@ function DatasetCard({ dataset }: { dataset: DatasetOption }) {
         )}
       </div>
 
-      <div className="flex items-center gap-2 pt-1 border-t border-[var(--color-hi-border)]">
-        <button className="flex-1 flex items-center justify-center gap-1.5
-                           py-2 rounded-[var(--radius-md)]
-                           text-xs text-[var(--color-hi-text-sub)]
-                           hover:bg-[var(--color-hi-bg)] transition-colors cursor-pointer">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-          Editar
-        </button>
-        <button className="w-9 h-9 flex items-center justify-center
-                           rounded-[var(--radius-md)]
-                           text-[var(--color-hi-danger)]
-                           hover:bg-red-50 transition-colors cursor-pointer"
-          aria-label="Eliminar dataset">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="3 6 5 6 21 6"/>
-            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-            <path d="M10 11v6M14 11v6"/>
-            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-          </svg>
+      <div className="pt-1 border-t border-[var(--color-hi-border)]">
+        <button
+          onClick={() => dataset.estado !== 'INACTIVE' ? onDeactivate(dataset) : onActivate(dataset)}
+          disabled={toggling}
+          className={`w-full flex items-center justify-center gap-1.5
+                      py-2 rounded-[var(--radius-md)] text-xs font-medium
+                      transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed
+                      ${dataset.estado !== 'INACTIVE'
+                        ? 'text-[var(--color-hi-danger)] hover:bg-red-50'
+                        : 'text-[var(--color-hi-primary)] hover:bg-[var(--color-hi-primary-soft)]'
+                      }`}
+        >
+          {dataset.estado !== 'INACTIVE' ? (
+            <>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+              Desactivar
+            </>
+          ) : (
+            <>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="17 1 21 5 17 9"/>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                <polyline points="7 23 3 19 7 15"/>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+              </svg>
+              Activar
+            </>
+          )}
         </button>
       </div>
     </div>
@@ -191,6 +222,12 @@ export default function DatasetsAdminPage() {
   const [search,      setSearch]      = useState('')
   const [modalOpen,   setModalOpen]   = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [tab,               setTab]               = useState<'activos' | 'inactivos'>('activos')
+  const [togglingId,        setTogglingId]        = useState<string | null>(null)
+  const [deactivateTarget,  setDeactivateTarget]  = useState<DatasetOption | null>(null)
+  const [deactivateLoading, setDeactivateLoading] = useState(false)
+  const [activateTarget,    setActivateTarget]    = useState<DatasetOption | null>(null)
+  const [activateLoading,   setActivateLoading]   = useState(false)
 
   // Datasets que están siendo procesados (PENDING / PROCESSING / ERROR)
   const [processing, setProcessing] = useState<ProcessingDataset[]>([])
@@ -253,7 +290,42 @@ export default function DatasetsAdminPage() {
     }
   }
 
-  const filtered = datasets.filter(d =>
+  const handleDeactivate = async (justification: string) => {
+    if (!deactivateTarget) return
+    setDeactivateLoading(true)
+    try {
+      await deactivateDataset(deactivateTarget.id, justification)
+      setDatasets(prev => prev.map(d =>
+        d.id === deactivateTarget.id ? { ...d, estado: 'INACTIVE' } : d
+      ))
+      setDeactivateTarget(null)
+    } catch (err) {
+      console.error('Error al desactivar dataset', err)
+    } finally {
+      setDeactivateLoading(false)
+    }
+  }
+
+  const handleActivate = async (justification: string) => {
+    if (!activateTarget) return
+    setActivateLoading(true)
+    try {
+      await reactivateDataset(activateTarget.id, justification)
+      setDatasets(prev => prev.map(d =>
+        d.id === activateTarget.id ? { ...d, estado: 'READY' } : d
+      ))
+      setActivateTarget(null)
+    } catch (err) {
+      console.error('Error al activar dataset', err)
+    } finally {
+      setActivateLoading(false)
+    }
+  }
+
+  const tabDatasets = datasets.filter(d =>
+    tab === 'activos' ? d.estado !== 'INACTIVE' : d.estado === 'INACTIVE'
+  )
+  const filtered    = tabDatasets.filter(d =>
     search === '' ||
     d.nombre.toLowerCase().includes(search.toLowerCase()) ||
     d.fuente?.toLowerCase().includes(search.toLowerCase()) ||
@@ -277,6 +349,24 @@ export default function DatasetsAdminPage() {
           </p>
         </div>
 
+        {/* Tabs */}
+        <div className="flex gap-1 mb-5 border-b border-[var(--color-hi-border)]">
+          {(['activos', 'inactivos'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-2 text-sm font-medium capitalize transition-colors cursor-pointer
+                border-b-2 -mb-px
+                ${tab === t
+                  ? 'border-[var(--color-hi-primary)] text-[var(--color-hi-primary)]'
+                  : 'border-transparent text-[var(--color-hi-text-sub)] hover:text-[var(--color-hi-text-main)]'
+                }`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+
         <div className="flex items-center gap-3 mb-6">
           <SearchInput
             value={search}
@@ -284,17 +374,19 @@ export default function DatasetsAdminPage() {
             placeholder="Buscar datasets..."
             className="flex-1"
           />
-          <Button variant="primary" size="md" onClick={() => {
-            setUploadError('')
-            setModalOpen(true)
-          }}>
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
-              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="8" y1="2" x2="8" y2="14"/>
-              <line x1="2" y1="8" x2="14" y2="8"/>
-            </svg>
-            Agregar Dataset
-          </Button>
+          {tab === 'activos' && (
+            <Button variant="primary" size="md" onClick={() => {
+              setUploadError('')
+              setModalOpen(true)
+            }}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="8" y1="2" x2="8" y2="14"/>
+                <line x1="2" y1="8" x2="14" y2="8"/>
+              </svg>
+              Agregar Dataset
+            </Button>
+          )}
         </div>
 
         {/* Datasets en proceso (PENDING / PROCESSING / ERROR) */}
@@ -343,7 +435,13 @@ export default function DatasetsAdminPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {filtered.map(d => (
-              <DatasetCard key={d.id} dataset={d} />
+              <DatasetCard
+                key={d.id}
+                dataset={d}
+                onDeactivate={setDeactivateTarget}
+                onActivate={setActivateTarget}
+                toggling={togglingId === d.id}
+              />
             ))}
           </div>
         )}
@@ -354,6 +452,22 @@ export default function DatasetsAdminPage() {
         onClose={() => setModalOpen(false)}
         onConfirm={handleUpload}
         uploadError={uploadError}
+      />
+
+      <ConfirmActionModal
+        isOpen={deactivateTarget !== null}
+        onClose={() => setDeactivateTarget(null)}
+        accionLabel={deactivateTarget ? `desactivar el dataset "${deactivateTarget.nombre}"` : ''}
+        onConfirm={handleDeactivate}
+        loading={deactivateLoading}
+      />
+
+      <ConfirmActionModal
+        isOpen={activateTarget !== null}
+        onClose={() => setActivateTarget(null)}
+        accionLabel={activateTarget ? `activar el dataset "${activateTarget.nombre}"` : ''}
+        onConfirm={handleActivate}
+        loading={activateLoading}
       />
     </div>
   )
