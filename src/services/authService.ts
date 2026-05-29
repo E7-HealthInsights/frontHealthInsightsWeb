@@ -2,7 +2,7 @@ import { signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import axios from 'axios'
 import { auth } from '../lib/firebase'
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080'
+const API_URL = import.meta.env.VITE_API_URL
 
 export interface UserProfile {
   id:       string
@@ -14,15 +14,10 @@ export interface UserProfile {
 }
 
 export async function login(email: string, password: string): Promise<UserProfile> {
-  console.log('[login] ▶️  start', { email, API_URL })
-
-  console.log('[login] 1/3 signInWithEmailAndPassword…')
   const credential = await signInWithEmailAndPassword(auth, email, password)
-  console.log('[login] 1/3 ✅ firebase uid:', credential.user.uid)
 
-  console.log('[login] 2/3 getIdToken…')
   const idToken = await credential.user.getIdToken()
-  console.log('[login] 2/3 ✅ idToken length:', idToken.length)
+  
 
   try {
     console.log('[login] 3/3 GET', `${API_URL}/auth/me`)
@@ -32,7 +27,7 @@ export async function login(email: string, password: string): Promise<UserProfil
       },
       timeout: 10000,
     })
-    console.log('[login] 3/3 ✅ /auth/me response:', response.status, response.data)
+    
 
     if (response.data.status === false) {
       console.warn('[login] usuario inactivo, cerrando sesión de Firebase')
@@ -47,7 +42,7 @@ export async function login(email: string, password: string): Promise<UserProfil
     if (error instanceof Error && error.message.startsWith('Tu cuenta está inactiva')) {
       throw error
     }
-    console.error('[login] 3/3 ❌ /auth/me failed:', error)
+    
     if (axios.isAxiosError(error)) {
       console.error('[login]    status:', error.response?.status,
           'data:', error.response?.data, 'code:', error.code)
