@@ -5,7 +5,7 @@ on:
     branches: [develop, main]
   pull_request:
     branches: [develop, main]
-
+  workflow_dispatch:
 jobs:
   analyze:
     name: Analyze (JavaScript/TypeScript)
