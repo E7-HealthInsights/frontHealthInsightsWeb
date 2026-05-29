@@ -1,0 +1,42 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - '--build-arg=VITE_API_URL=$_VITE_API_URL'
+      - '--build-arg=VITE_API_BASE_URL=$_VITE_API_URL'
+      - '--build-arg=VITE_FIREBASE_API_KEY=$_VITE_FIREBASE_API_KEY'
+      - '--build-arg=VITE_FIREBASE_AUTH_DOMAIN=$_VITE_FIREBASE_AUTH_DOMAIN'
+      - '--build-arg=VITE_FIREBASE_PROJECT_ID=$_VITE_FIREBASE_PROJECT_ID'
+      - '--build-arg=VITE_FIREBASE_APP_ID=$_VITE_FIREBASE_APP_ID'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO/$_SERVICE_NAME:$SHORT_SHA'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO/$_SERVICE_NAME:latest'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: [ 'push', '--all-tags', 'us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO/$_SERVICE_NAME' ]
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - '$_SERVICE_NAME'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/$_REPO/$_SERVICE_NAME:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+
+substitutions:
+  _REPO: healthinsights-repo
+  _SERVICE_NAME: frontend-health
+  # URL DE TU BACKEND REAL:
+  _VITE_API_URL: 'https://healthinsights-391049646172.us-central1.run.app'
+  _VITE_FIREBASE_API_KEY: 'AIzaSyDxkbbKZNt42kiIm865yw6ImBNF7O1dE9k'
+  _VITE_FIREBASE_AUTH_DOMAIN: 'healthinsights-494705.firebaseapp.com'
+  _VITE_FIREBASE_PROJECT_ID: 'healthinsights-494705'
+  _VITE_FIREBASE_APP_ID: '1:871267342813:web:c04869ba897ab7939abe34' 
+
+options:
+  logging: CLOUD_LOGGING_ONLY
