@@ -13,6 +13,45 @@ const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(file
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options':        'DENY',
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        // unsafe-eval y unsafe-inline son requeridos por Vite HMR en dev — no aplican a producción
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self'",
+        "connect-src 'self' http://localhost:8080 https://api.anthropic.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com",
+        "frame-src 'none'",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join('; '),
+    },
+  },
+  preview: {
+    headers: {
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options':        'DENY',
+      'Content-Security-Policy': [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "font-src 'self'",
+        "connect-src 'self' https://api.anthropic.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com https://*.firebaseapp.com",
+        "frame-src 'none'",
+        "frame-ancestors 'none'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join('; '),
+    },
+  },
   test: {
     projects: [
       // ── Proyecto 1: tests unitarios / integración con jsdom + RTL ────────
